@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="ISO-8859-1" ?>
+<task:task xmlns:task="http://cancerresearchuk.org/workflow/task"
+           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+           xsi:schemaLocation="http://cancerresearchuk.org/workflow/task http://uk-cri-lbio01/schema/workflow/task-1.4.xsd">
+
+    <name>BetweenPeaksProcess2</name>
+    <description>Update sampleSheet with bam file statistics.</description>
+
+    <program type="commandLine">
+        <executable>
+		export R_LIBS=${rlibs}
+		${rexec} --vanilla ${pipelineBase}/RScripts/R_RunGenometricCorr.r ${SampleName} ${SampleName2} ${OutFile} ${lengths}
+	</executable>
+    </program>
+
+ 	 <inputs>
+        <input name="SampleName" required="true" description="The Peaks file." />
+        <input name="SampleName2" required="true" description="The genome fasta sequence file." />
+    </inputs>
+
+
+
+    <outputs>
+        <output name="OutFile" required="true" safeNaming="false" description="Wig processes by pipeline" />
+    </outputs>
+
+    <arguments>
+	<arg name="OutName" required="true" description="Working Directory"/>
+	<arg name="lengths" required="true" description="Working Directory"/>
+	<arg name="rexec" required="true" description="Working Directory"/>
+	<arg name="pipelineBase" required="true" description="Working Directory"/>
+	<arg name="rlibs" required="true" description="Working Directory"/>
+    </arguments>
+
+</task:task>
+

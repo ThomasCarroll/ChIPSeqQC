@@ -1,0 +1,248 @@
+<?xml version="1.0" encoding="ISO-8859-1" ?>
+<pipe:pipeline xmlns:pipe="http://cancerresearchuk.org/workflow/pipeline"
+               xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+               xsi:schemaLocation="http://cancerresearchuk.org/workflow/pipeline http://uk-cri-lbio01/schema/workflow/pipeline-1.4.xsd">
+
+    <name>ChipBamProcess Pipeline_P2</name>
+    <description>Pipeline for generating Bam files processed for the ChIPseqPipeline.</description>
+
+    <tasks>
+     
+
+
+	<specialisationSet name="WigCaller" type="WigCaller" variable="trio">
+
+	<subtasks> 
+       	
+
+<!--	<task name="WigProcess" type="WigProcess">                  
+
+
+			<resources>
+                        <memory>4G</memory>
+                    </resources>
+                    
+                
+                    <inputs>
+                	<input name="bam_processed">${BamDirectory}/${Test}.bam</input>
+                	<input name="genome">${genomeFile}</input>
+                    </inputs>
+
+                    <outputs>
+                        <output name="Wig">${WorkingDirectory}/Coverage/${Test}.wig</output>
+                    </outputs>
+
+	<arguments>
+    	    <arg name="TheDirectory">${WorkingDirectory}</arg>
+    	</arguments> 
+    	</task>
+-->
+    	
+	<task name="BedgraphProcess" type="BedgraphProcess">                  
+
+
+		    <resources>
+                        <memory>4G</memory>
+                        <maxMemory>16G</maxMemory>                        	
+                    </resources>
+                    
+                
+                    <inputs>
+                	<input name="bam_processed">${BamDirectory}/${Test}.bam</input>
+                	<input name="genome">${genomeFile}</input>
+                    </inputs>
+
+                    <outputs>
+                        <output name="Bedgraph">${CoverageDir}/${Test}.bedgraph</output>
+                    </outputs>
+
+	<arguments>
+    	    <arg name="TheDirectory">${WorkingDirectory}</arg>
+    	    <arg name="bedtools">${bedtools}</arg>
+    	</arguments> 
+
+
+                </task>
+
+        <task name="WigHistogram" type="WigHistogram">
+		    <resources>
+                        <memory>4G</memory>
+                        <maxMemory>16G</maxMemory>                        	
+                    </resources>
+	                   
+	                    <inputs>
+                		<input name="bam_processed">${BamDirectory}/${Test}.bam</input>
+                		<input name="genome">${genomeFile}</input>
+	                    </inputs>
+	
+	                    <outputs>
+	                        <output name="Histogram">${CoverageDir}/${Test}.hist</output>
+	                    </outputs>
+
+	<arguments>
+    	    <arg name="TheDirectory">${WorkingDirectory}</arg>
+    	    <arg name="bedtools">${bedtools}</arg>
+    	</arguments> 
+
+               </task>
+        <task name="TSSAverageCoverageProcess" type="AverageCoverageProcess">
+		    <resources>
+                        <memory>4G</memory>
+                        <maxMemory>16G</maxMemory>                        	
+                    </resources>
+	                   
+	                    <inputs>
+                		<input name="bam_processed">${BamDirectory}/${Test}.bam</input>
+                		<input name="genome">${genomeFile}</input>                		
+	                    </inputs>
+	
+	                    <outputs>
+	                        <output name="CovProfile">${CoverageDir}/TSS_AvCov_${Test}.RData</output>
+	                    </outputs>
+
+	<arguments>
+    	    <arg name="TheDirectory">${CoverageDir}</arg>
+           <arg name="genepos">${genepos}</arg>
+           <arg name="rexec">${rexec}</arg>
+           <arg name="pipelineBase">${pipelineBase}</arg>
+           <arg name="rlibs">${rlibs}</arg>
+    	</arguments> 
+               </task>
+
+
+        <task name="CountingReadsInFeatures" type="CountingReadsInFeatures">
+		    <resources>
+                        <memory>4G</memory>
+                        <maxMemory>16G</maxMemory>                        	
+                    </resources>
+	                   
+	                    <inputs>
+                		<input name="bam_processed">${BamDirectory}/${Test}.bam</input>
+	                    </inputs>
+	
+	                    <outputs>
+	                        <output name="FeatureCounts">${CoverageDir}/${Test}_ReadCountsInFeatures.txt</output>
+	                    </outputs>
+
+	<arguments>
+    	    <arg name="TheDirectory">${CoverageDir}</arg>
+           <arg name="genepos">${genepos}</arg>
+	    <arg name="rexec">${rexec}</arg>
+           <arg name="pipelineBase">${pipelineBase}</arg>
+           <arg name="genomeLengths">${genomeFile}</arg>
+           <arg name="rlibs">${rlibs}</arg>
+    	</arguments> 
+               </task>
+
+
+     <task name="CoverageDispersionProcess" type="CoverageDispersionProcess">
+		    <resources>
+                        <memory>4G</memory>
+                        <maxMemory>16G</maxMemory>                        	
+                    </resources>
+	                   
+	                    <inputs>
+                		<input name="bam_processed">${BamDirectory}/${Test}.bam</input>
+	                    </inputs>
+	
+	                    <outputs>
+	                        <output name="CovDispersion">${CoverageDir}/${Test}_CoverageDispersion.RData</output>
+	                    </outputs>
+
+	<arguments>
+    	    <arg name="TheDirectory">${CoverageDir}/</arg>
+           <arg name="genomeName">${genomeName}</arg>
+	    <arg name="rexec">${rexec}</arg>
+           <arg name="pipelineBase">${pipelineBase}</arg>
+           <arg name="rlibs">${rlibs}</arg>
+    	</arguments> 
+
+
+	</task>
+
+  <!-- 
+      <task name="CrossCorrelationProcess" type="CrossCorrelationProcess">
+	                    <resources>
+	                        <memory>8G</memory>
+	                    </resources>
+	                   
+	                    <inputs>
+                		<input name="bam_processed">${BamDirectory}/${Test}.bam</input>
+	                    </inputs>
+	
+	                    <outputs>
+	                        <output name="CrossCorResults">${WorkingDirectory}/Coverage/${Test}_CrossCor.txt</output>
+	                    </outputs>
+
+	<arguments>
+    	    <arg name="TheDirectory">${WorkingDirectory}/Coverage/</arg>
+           <arg name="genomeName">${genomeName}</arg>
+    	</arguments> 
+
+
+	</task>
+
+  -->                            
+ 
+	        <task name="BigWigProcess" type="BigWigProcess">
+	        <depends>
+		     <task>BedgraphProcess</task>
+	   	</depends>
+		    <resources>
+                        <memory>4G</memory>
+                        <maxMemory>16G</maxMemory>                        	
+                    </resources>
+	                    
+	           <inputs>
+                		<input name="Wig">${CoverageDir}/${Test}.bedgraph</input>
+                		<input name="genome">${genomeFile}</input>
+	           </inputs>
+	    
+	           <outputs>
+	               <output name="BigBed">${CoverageDir}/${Test}.bw</output>
+	           </outputs>
+
+	<arguments>
+    	    <arg name="TheDirectory">${WorkingDirectory}</arg>
+    	    <arg name="BigWig">${BigWig}</arg>
+    	</arguments> 
+
+	        </task>
+
+	     </subtasks>
+      </specialisationSet>
+
+  <!--
+        <task name="AvCovGenesPlotProcess" type="AvCovGenesPlotProcess">
+	        <depends>
+		     <task>WigCaller</task>
+	   	</depends>
+	                    <resources>
+	                        <memory>8G</memory>
+	                    </resources>
+	                   
+	                    <inputs>
+                		<input name="bam_processed">${genomeFile}</input>
+	                    </inputs>
+	
+	                    <outputs>
+	                        <output name="AveCovPlot">${WorkingDirectory}/Coverage/AverageTSSPlot.png</output>
+	                    </outputs>
+
+	<arguments>
+    	    <arg name="TheDirectory">${WorkingDirectory}</arg>
+           <arg name="genomeName">${genomeName}</arg>
+    	</arguments> 
+
+
+	</task>
+-->
+    </tasks>
+</pipe:pipeline>
+
+
+
+
+
+
+

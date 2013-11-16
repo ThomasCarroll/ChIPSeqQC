@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="ISO-8859-1" ?>
+<task:task xmlns:task="http://cancerresearchuk.org/workflow/task"
+           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+           xsi:schemaLocation="http://cancerresearchuk.org/workflow/task http://uk-cri-lbio01/schema/workflow/task-1.4.xsd">
+
+
+    <name>MultiFragEstimate</name>
+    <description>Splits the WigProcess pipeline to run over all the processed Bam files found.</description>
+
+    <program type="inbuilt"/>
+
+    <inputs>
+        <input name="bam_Proc" required="true" description="The processed Bam file." />
+    </inputs>
+
+    <outputs>
+        <output name="FragLens"  plurality="multiple" required="true" safeNaming="true" description="Bam processes by pipeline" />
+    </outputs>
+	
+
+</task:task>

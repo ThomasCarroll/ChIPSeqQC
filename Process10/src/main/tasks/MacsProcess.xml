@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="ISO-8859-1" ?>
+<task:task xmlns:task="http://cancerresearchuk.org/workflow/task"
+           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+           xsi:schemaLocation="http://cancerresearchuk.org/workflow/task http://uk-cri-lbio01/schema/workflow/task-1.4.xsd">
+
+    <name>MacsProcess</name>
+    <description>Wig processing for ChIPseqPipeline.</description>
+
+    <program type="commandLine">
+        <executable>
+	mkdir -p ${TheDirectory}/Peaks/Macs_Peaks/
+	/lustre/mib-cri/carrol09/MyPipe/PeakCallers/MACS-1.4.1/bin/macs14 -t ${TestBam} -c ${ControlBam} -f BAM -g ${GenomeForMacs} -m ${Mfold} --shiftsize=${shiftSize} -n ${OutputName} 
+
+	</executable>
+    </program>
+
+    <inputs>
+        <input name="TestBam" required="true" description="The Bam file." />
+        <input name="ControlBam" required="true" description="genome." />
+    </inputs>
+	
+    <outputs>
+        <output name="Output1" required="true" safeNaming="false" description="Wig processes by pipeline" />
+        <output name="Output2" required="true" safeNaming="false" description="Wig processes by pipeline" />
+        <output name="Output3" required="true" safeNaming="false" description="Wig processes by pipeline" />
+        <output name="Output4" required="true" safeNaming="false" description="Wig processes by pipeline" />
+    </outputs>
+
+    <arguments>
+        <arg name="OutputName" required="true" description="Name for Macs output"/>
+	<arg name="GenomeForMacs" required="true" description="Genome for Macs output"/>
+	<arg name="Mfold" required="true" description="Mfold for Macs output"/>
+	<arg name="shiftSize" required="true" description="ShiftZie for Macs output"/>	
+	<arg name="TheDirectory" required="true" description="Working Directory"/>
+    </arguments>
+
+</task:task>

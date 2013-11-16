@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="ISO-8859-1" ?>
+<task:task xmlns:task="http://cancerresearchuk.org/workflow/task"
+           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+           xsi:schemaLocation="http://cancerresearchuk.org/workflow/task http://uk-cri-lbio01/schema/workflow/task-1.4.xsd">
+
+    <name>SicerProcess</name>
+    <description>Sicer peak call processing for ChIPseqPipeline.</description>
+
+    <program type="commandLine">
+        <executable>
+	mkdir -p ${TestName}
+	cd ${TestName}
+	sh /lustre/mib-cri/carrol09/MyPipe/PeakCallers/SICER_V1.1/SICER/SICER.sh ${TheDirectory}/bamFiles/ ${TestBed} ${ControlBed}  ${TestName} ${GenomeForSicer} 1 200 ${shiftSize} 0.74 600 .01
+ 
+	</executable>
+    </program>
+
+
+    <outputs>
+        <output name="OutputSicer" required="true" safeNaming="false" description="Wig processes by pipeline" />
+    </outputs>
+
+    <arguments>
+        <arg name="TestName" required="true" description="Name for Macs output"/>
+	<arg name="GenomeForSicer" required="true" description="Genome for Macs output"/>
+	<arg name="shiftSize" required="true" description="Genome for Macs output"/>
+	<arg name="TheDirectory" required="true" description="Working Directory"/>
+       <arg name="TestBed" required="true" description="The Bam file." />
+       <arg name="ControlBed" required="true" description="genome." />
+
+    </arguments>
+
+</task:task>

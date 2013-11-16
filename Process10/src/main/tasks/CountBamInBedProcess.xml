@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="ISO-8859-1" ?>
+<task:task xmlns:task="http://cancerresearchuk.org/workflow/task"
+           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+           xsi:schemaLocation="http://cancerresearchuk.org/workflow/task http://uk-cri-lbio01/schema/workflow/task-1.4.xsd">
+
+    <name>CountBamInBedProcess</name>
+    <description>Counts Regions for ChIPseqPipeline.</description>
+
+    <program type="commandLine">
+        <executable>
+
+	mkdir -p ${TheDirectory}/Peaks/PeakProfiles
+	${bedtools}/coverageBed -counts -abam ${bamFile} -b ${bed}  > ${CountedFile}
+	</executable>
+    </program>
+
+    <inputs>
+        <input name="bed" required="true" description="The bed file." />
+	 <input name="bamFile" required="true" description="The bed file." />
+	
+    </inputs>
+
+    <outputs>
+        <output name="CountedFile" required="true" safeNaming="false" description="Bam processes by pipeline" />
+    </outputs>
+
+     <arguments>
+	<arg name="TheDirectory" required="true" description="Working Directory"/>
+	<arg name="bedtools" required="true" description="Working Directory"/>
+   	 </arguments>
+</task:task>

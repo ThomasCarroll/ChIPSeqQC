@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="ISO-8859-1" ?>
+<pipe:pipeline xmlns:pipe="http://cancerresearchuk.org/pipeline/1.2"
+               xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+               xsi:schemaLocation="http://cancerresearchuk.org/pipeline/1.2 http://uk-cri-lsol03:8080/solexa/solexa01/schema/workflow/pipeline-1.2.xsd">
+
+    <name>ChipBamProcess Pipeline_P1</name>
+    <description>Pipeline for generating Bam files processed for the ChIPseqPipeline.</description>
+
+    <tasks>
+
+   <!--    	        <task name="MakeReportProcess" type="MakeReportProcess">
+
+			<resources>
+	              	<memory>8G</memory>
+			</resources>
+  			      <inputs>
+                        		<input name="SampleSheet">${WorkingDirectory}/SampleSheet.csv</input>
+	                    </inputs>
+	
+	                    <outputs>
+	                        <output name="Report" deleteOnFailure="false">${WorkingDirectory}/ChipSeqReport.pdf</output>
+	                    </outputs>
+				
+				<arguments>
+			    	    <arg name="TheDirectory">${WorkingDirectory}</arg>
+				</arguments> 
+			 </task>
+-->
+      	        <task name="MakeHTMLReportProcess" type="MakeHTMLReportProcess">
+
+			<resources>
+	              	<memory>8G</memory>
+			</resources>
+  			      <inputs>
+                        		<input name="SampleSheet">${WorkingDirectory}/SampleSheet.csv</input>
+	                    </inputs>
+	
+	                    <outputs>
+	                        <output name="HTMLReport" deleteOnFailure="false">${WorkingDirectory}/HTML_Report/SampleSummary.html</output>
+	                    </outputs>
+				
+				<arguments>
+			    	    <arg name="TheDirectory">${WorkingDirectory}</arg>
+				</arguments> 
+			 </task>
+
+
+    </tasks>
+</pipe:pipeline>
+

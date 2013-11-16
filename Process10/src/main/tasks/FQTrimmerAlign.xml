@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="ISO-8859-1" ?>
+<task:task xmlns:task="http://cancerresearchuk.org/workflow/task"
+           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+           xsi:schemaLocation="http://cancerresearchuk.org/workflow/task http://uk-cri-lbio01/schema/workflow/task-1.4.xsd">
+
+    <name>FQTrimmerAlign</name>
+    <description>Bam processing for ChIPseqPipeline.</description>
+
+    <program type="commandLine">
+        <executable>
+        export PYTHONPATH=${pythonlibs}
+	 gzip -dcf ${FastQ} | ${python} ${pipelineBase}/PythonScripts/TrimFQ.py ${maxlength} | gzip > ${trimmedFQ}
+
+	</executable>
+    </program>
+
+    <inputs>
+        <input name="FastQ" required="true" description="The Bam file." />
+       </inputs>
+
+    <outputs>
+        <output name="trimmedFQ" required="true" safeNaming="false" description="Bam processes by pipeline" />
+
+    </outputs>
+
+    <arguments>
+	<arg name="fastxtrimmerexe" required="true" description="Working Directory"/>
+	<arg name="maxlength" required="true" description="Working Directory"/>
+	<arg name="QEflag" required="true" description="Working Directory"/>	
+	<arg name="python" required="true" description="Working Directory"/>
+	<arg name="pipelineBase" required="true" description="Working Directory"/>
+	<arg name="pythonlibs" required="true" description="Working Directory"/>
+    </arguments>
+
+</task:task>

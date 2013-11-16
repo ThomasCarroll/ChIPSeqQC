@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="ISO-8859-1" ?>
+<task:task xmlns:task="http://cancerresearchuk.org/workflow/task"
+           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+           xsi:schemaLocation="http://cancerresearchuk.org/workflow/task http://uk-cri-lbio01/schema/workflow/task-1.4.xsd">
+
+    <name>MakeChromosomeLengths</name>
+    <description>Bam processing for ChIPseqPipeline.</description>
+
+    <program type="commandLine">
+        <executable>
+	export PYTHONPATH=${pythonlibs}
+	${python} ${pipelineBase}/PythonScripts/CRI_ChrLengthsFromSeqDict.py ${SeqDictionary} ${ChrLengths}
+	</executable>
+    </program>
+
+    <inputs>
+        <input name="SeqDictionary" required="true" description="The sequence dictionary file." />
+    </inputs>
+
+    <outputs>
+        <output name="ChrLengths" required="true" safeNaming="false" description="Bam processes by pipeline" />
+    </outputs>
+
+    <arguments>
+	<arg name="python" required="true" description="python executable"/>
+	<arg name="pipelineBase" required="true" description="pipeline base"/>
+	<arg name="pythonlibs" required="true" description="pipeline base"/>
+    </arguments>
+
+</task:task>

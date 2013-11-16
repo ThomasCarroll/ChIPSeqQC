@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="ISO-8859-1" ?>
+<pipe:pipeline xmlns:pipe="http://cancerresearchuk.org/workflow/pipeline"
+               xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+               xsi:schemaLocation="http://cancerresearchuk.org/workflow/pipeline http://uk-cri-lbio01/schema/workflow/pipeline-1.4.xsd">
+
+    <name>Specialisation-based demultiplexing Pipeline</name>
+    <description>Pipeline for untangling multiplexed sequence data.</description>
+
+
+    <variables>
+        <permittedErrors>1</permittedErrors>
+    </variables>
+
+    <tasks>
+        <specialisationSet name="DemultiSpecial" type="DemultiSpecial" variable="trio">
+
+                    <subtasks>
+                        <task name="Demultiplex" type="Demultiplex">
+                            <inputs>
+                                <input name="barcodeFile">${indexFile}</input>
+                                <input name="fastqFile">${SequenceFile}</input>
+                            </inputs>
+
+                            <outputs>
+                                <output name="lostReadSummaryFile">${demuxDir}/${SequenceExpected}.txt</output>
+                            </outputs>
+
+                            <arguments>
+                                <arg name="outputDirectory">${demuxDir}</arg>
+                                <arg name="permittedErrors">${permittedErrors}</arg>
+                                <arg name="zip">true</arg>
+                            </arguments>
+                        </task>
+
+<!--                <task name="summarize" type="summarize">
+                    <inputs>
+                        <input name="fastqFile">${SequenceFile}</input>
+                    </inputs>
+
+                    <outputs>
+                        <output name="summaryFile">${demuxDir}/BarcodeSummary.${SequenceExpected}.txt</output>
+                    </outputs>
+
+                </task>
+-->
+            </subtasks>
+        </specialisationSet>
+    </tasks>
+</pipe:pipeline>
+

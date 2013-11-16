@@ -1,0 +1,268 @@
+<?xml version="1.0" encoding="ISO-8859-1" ?>
+<pipe:pipeline xmlns:pipe="http://cancerresearchuk.org/workflow/pipeline"
+               xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+               xsi:schemaLocation="http://cancerresearchuk.org/workflow/pipeline http://uk-cri-lbio01/schema/workflow/pipeline-1.4.xsd">
+
+    <name>Feature Profile Pipeline</name>
+    <description>Profiling features</description>
+
+    <tasks>
+
+
+	<task name="GCRegionsProcess" type="GCRegionsProcess">
+
+	 <resources>
+            <memory>4G</memory>
+		<!--<cpus>4</cpus>-->
+        </resources>
+        
+	<inputs>
+   	     <input name="bed">${targetregionsbed}</input>
+   	     <input name="fasta">${fastafile}</input>
+       </inputs>
+	     
+       <outputs>
+               <output name="GCContentFile"  deleteOnFailure="true">${WorkingDirectory}/FeatureProfiles/${GCoutfile}</output>
+       </outputs>
+
+       <arguments>
+    	        <arg name="TheDirectory">${WorkingDirectory}</arg>		
+	</arguments> 
+ 
+      </task>
+
+
+	<specialisationSet name="ProfileFeatureCaller" type="ProfileFeatureCaller" variable="trio">
+
+	<subtasks> 
+       
+	 <task name="CountInBedProcess" type="CountInBedProcess">
+
+	 <resources>
+            <memory>4G</memory>
+		<!--<cpus>4</cpus>-->
+        </resources>
+        
+	<inputs>
+            <input name="bam">${bamDirectory}/${samplename}.bam</input>
+   	     <input name="bed">${targetregionsbed}</input>
+       </inputs>
+	     
+       <outputs>
+               <output name="targetCount"  deleteOnFailure="true">${WorkingDirectory}/FeatureProfiles/${samplename}_ontarget.count</output>
+       </outputs>
+
+       <arguments>
+    	        <arg name="TheDirectory">${WorkingDirectory}</arg>		
+	</arguments> 
+ 
+      </task>
+
+
+	 <task name="CountMappedProcess" type="CountMappedProcess">
+
+	 <resources>
+            <memory>4G</memory>
+		<!--<cpus>4</cpus>-->
+        </resources>
+        
+	<inputs>
+            <input name="bam">${bamDirectory}/${samplename}.bam</input>
+       </inputs>
+	     
+       <outputs>
+               <output name="MappedCount"  deleteOnFailure="true">${WorkingDirectory}/FeatureProfiles/${samplename}_Total.count</output>
+       </outputs>
+
+       <arguments>
+    	        <arg name="TheDirectory">${WorkingDirectory}</arg>		
+	</arguments> 
+ 
+      </task>
+
+
+	 <task name="CountOffBedProcess" type="CountInBedProcess">
+
+	 <resources>
+            <memory>4G</memory>
+		<!--<cpus>4</cpus>-->
+        </resources>
+        
+	<inputs>
+            <input name="bam">${bamDirectory}/${samplename}.bam</input>
+   	     <input name="bed">${offtargetregionsbed}</input>
+       </inputs>
+	     
+       <outputs>
+               <output name="targetCount"  deleteOnFailure="true">${WorkingDirectory}/FeatureProfiles/${samplename}_offtarget.count</output>
+       </outputs>
+
+       <arguments>
+    	        <arg name="TheDirectory">${WorkingDirectory}</arg>		
+	</arguments> 
+ 
+      </task>
+
+
+
+
+	 <task name="CoveraqeProfilesProcess" type="CoveraqeProfilesProcess">
+
+	 <resources>
+            <memory>8G</memory>
+		<!--<cpus>4</cpus>-->
+        </resources>
+        
+	<inputs>
+            <input name="bam">${bamDirectory}/${samplename}.bam</input>
+   	     <input name="bed">${targetregionsbed}</input>
+       </inputs>
+	     
+       <outputs>
+               <output name="hist"  deleteOnFailure="true">${WorkingDirectory}/FeatureProfiles/${samplename}_ontarget.hist</output>
+       </outputs>
+
+       <arguments>
+    	        <arg name="TheDirectory">${WorkingDirectory}</arg>		
+	</arguments> 
+ 
+      </task>
+
+
+	 <task name="OffCoveraqeProfilesProcess" type="OffCoveraqeProfilesProcess">
+
+	 <resources>
+            <memory>8G</memory>
+		<!--<cpus>4</cpus>-->
+        </resources>
+        
+	<inputs>
+            <input name="bam">${bamDirectory}/${samplename}.bam</input>
+   	     <input name="offbed">${offtargetregionsbed}</input>
+       </inputs>
+	     
+       <outputs>
+               <output name="offtargethist"  deleteOnFailure="true">${WorkingDirectory}/FeatureProfiles/${samplename}_offtarget.hist</output>
+       </outputs>
+
+       <arguments>
+    	        <arg name="TheDirectory">${WorkingDirectory}</arg>		
+	</arguments> 
+ 
+      </task>
+
+	 <task name="OffCoveraqe_GrepAllFromHistProcess" type="OffCoverage_GrepAllFromHistProcess">
+	<depends>
+	     <task>OffCoveraqeProfilesProcess</task>
+	</depends> 
+	 <resources>
+            <memory>2G</memory>
+		<!--<cpus>4</cpus>-->
+        </resources>
+        
+	<inputs>
+            <input name="offorontargethist">${WorkingDirectory}/FeatureProfiles/${samplename}_offtarget.hist</input>
+       </inputs>
+	     
+       <outputs>
+               <output name="justall_targethist"  deleteOnFailure="true">${WorkingDirectory}/FeatureProfiles/${samplename}_JustAll_offtarget.hist</output>
+       </outputs>
+
+      </task>
+
+	 <task name="OnCoveraqe_GrepAllFromHistProcess" type="OnCoverage_GrepAllFromHistProcess">
+	<depends>
+	     <task>CoveraqeProfilesProcess</task>
+	</depends> 
+	 <resources>
+            <memory>2G</memory>
+		<!--<cpus>4</cpus>-->
+        </resources>
+        
+	<inputs>
+            <input name="offorontargethist">${WorkingDirectory}/FeatureProfiles/${samplename}_ontarget.hist</input>
+       </inputs>
+	     
+       <outputs>
+               <output name="justall_targethist"  deleteOnFailure="true">${WorkingDirectory}/FeatureProfiles/${samplename}_JustAll_ontarget.hist</output>
+       </outputs>
+
+      </task>
+
+	 <task name="IntersectProcess" type="IntersectProcess">
+
+	 <resources>
+            <memory>4G</memory>
+		<!--<cpus>4</cpus>-->
+        </resources>
+        
+	<inputs>
+            <input name="bam">${bamDirectory}/${samplename}.bam</input>
+   	     <input name="bed">${offtargetregionsbed}</input>
+       </inputs>
+	     
+       <outputs>
+               <output name="filteredbam"  deleteOnFailure="true">${WorkingDirectory}/FeatureProfiles/${samplename}_filtered.bam</output>
+       </outputs>
+
+       <arguments>
+    	        <arg name="TheDirectory">${WorkingDirectory}</arg>		
+	</arguments> 
+
+      </task>
+
+	 <task name="BedgraphProcess" type="BedgraphProcess">
+	<depends>
+	     <task>IntersectProcess</task>
+	</depends> 
+       <resources>
+            <memory>4G</memory>
+		<!--<cpus>4</cpus>-->
+        </resources>
+        
+	<inputs>
+            <input name="bam_processed">${WorkingDirectory}/FeatureProfiles/${samplename}_filtered.bam</input>
+   	     <input name="genome">${genome}</input>
+       </inputs>
+	     
+       <outputs>
+               <output name="Bedgraph"  deleteOnFailure="true">${WorkingDirectory}/FeatureProfiles/${samplename}_filtered.bedgraph</output>
+       </outputs>
+
+       <arguments>
+    	        <arg name="TheDirectory">${WorkingDirectory}</arg>		
+	</arguments> 
+
+      </task>
+
+	 <task name="BigWigProcess" type="BigWigProcess">
+	<depends>
+	     <task>BedgraphProcess</task>
+	</depends> 
+       <resources>
+            <memory>4G</memory>
+		<!--<cpus>4</cpus>-->
+        </resources>
+        
+	<inputs>
+            <input name="Wig">${WorkingDirectory}/FeatureProfiles/${samplename}_filtered.bedgraph</input>
+   	     <input name="genome">${genome}</input>
+       </inputs>
+	     
+       <outputs>
+               <output name="BigBed"  deleteOnFailure="true">${WorkingDirectory}/FeatureProfiles/${samplename}_filtered.bw</output>
+       </outputs>
+
+       <arguments>
+    	        <arg name="TheDirectory">${WorkingDirectory}</arg>		
+	</arguments> 
+
+      </task>
+	</subtasks>
+	</specialisationSet>
+    </tasks>
+
+
+
+
+</pipe:pipeline>

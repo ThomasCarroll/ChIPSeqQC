@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="ISO-8859-1" ?>
+<task:task xmlns:task="http://cancerresearchuk.org/workflow/task"
+           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+           xsi:schemaLocation="http://cancerresearchuk.org/workflow/task http://uk-cri-lbio01/schema/workflow/task-1.4.xsd">
+
+    <name>FragEstimate</name>
+    <description>Bam processing for ChIPseqPipeline.</description>
+
+    <program type="commandLine">
+        <executable>
+	mkdir -p ${FLDir}
+	export R_LIBS=${rlibs}
+	${rexec} --vanilla ${pipelineBase}/RScripts/R_GetFragLength.r  ${bam_Proc} ${FLDir} 
+	</executable>
+    </program>
+
+    <inputs>
+        <input name="bam_Proc" required="true" description="The Bam file." />
+    </inputs>
+
+    <outputs>
+        <output name="FragLen" required="true" safeNaming="false" description="Bam processes by pipeline" />
+    </outputs>
+
+    <arguments>
+	<arg name="TheDirectory" required="true" description="Working Directory"/>
+	<arg name="rexec" required="true" description="R executable"/>
+	<arg name="pipelineBase" required="true" description="pipeline base"/>
+	<arg name="rlibs" required="true" description="pipeline base"/>
+	<arg name="FLDir" required="true" description="pipeline base"/>
+    </arguments>
+
+</task:task>

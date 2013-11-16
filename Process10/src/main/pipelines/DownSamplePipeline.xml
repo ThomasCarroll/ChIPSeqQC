@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="ISO-8859-1" ?>
+<pipe:pipeline xmlns:pipe="http://cancerresearchuk.org/workflow/pipeline"
+               xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+               xsi:schemaLocation="http://cancerresearchuk.org/workflow/pipeline http://uk-cri-lbio01/schema/workflow/pipeline-1.4.xsd">
+
+    <name>ChipDownSamplingPipeline</name>
+    <description>Pipeline for generating Bam files processed for the ChIPseqPipeline.</description>
+
+    <tasks>
+
+	<specialisationSet name="DownSampleCaller" type="DownSampleCaller" variable="trio">
+
+		<subtasks> 
+
+		 <task name="DownSampleProcess" type="DownSampleProcess" attempts="1">
+		<resources>
+		    <memory>4G</memory>
+		</resources>
+		    <inputs>
+			<input name="bam">${BamDirectory}/${Input}.bam</input>
+		    </inputs>
+
+		    <outputs>
+			<output name="bam_downsampled"  deleteOnFailure="false">${BamDirectory}/${Input}_downsampled_by_${Sample}temp.bam</output>
+		    </outputs>
+		<arguments>
+		    <arg name="TheDirectory">${WorkingDirectory}</arg>
+		    <arg name="picard">${picard}</arg>
+		    <arg name="Input">${Input}</arg>
+		    <arg name="Sample">${Sample}</arg>
+		    <arg name="java">${java}</arg>		    
+		    <arg name="prob">${prob}</arg>		    
+		</arguments> 
+		 </task>
+
+
+
+	<task name="MarkDuplicateProcessDown" type="MarkDuplicateProcessDown">
+       <depends>
+		<task>DownSampleProcess</task>
+	</depends>
+	<resources>
+            <memory>4G</memory>
+        </resources>
+	  <inputs>
+		 <input name="DownSampledFile">${BamDirectory}/${Input}_downsampled_by_${Sample}temp.bam</input>
+	 </inputs>
+            <outputs>
+                <output name="MarkedDownSampledFile" deleteOnFailure="true">${BamDirectory}/${Input}_downsampled_by_${Sample}.bam</output>
+            </outputs>
+    	<arguments>
+    	    	<arg name="TheDirectory">${WorkingDirectory}</arg>
+		<arg name="Input">${Input}</arg>
+		<arg name="Sample">${Sample}</arg>
+		<arg name="picard">${picard}</arg>			
+		<arg name="java">${java}</arg>
+    	</arguments> 
+    	</task>
+
+
+
+            </subtasks>
+      </specialisationSet>
+    </tasks>
+</pipe:pipeline>
+

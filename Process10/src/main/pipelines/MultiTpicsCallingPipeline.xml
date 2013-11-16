@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="ISO-8859-1" ?>
+<pipe:pipeline xmlns:pipe="http://cancerresearchuk.org/pipeline/1.2"
+               xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+               xsi:schemaLocation="http://cancerresearchuk.org/pipeline/1.2 http://uk-cri-lsol03:8080/solexa/solexa01/schema/workflow/pipeline-1.2.xsd">
+
+    <name>ChipBamProcess Pipeline</name>
+    <description>Pipeline for generating Bam files processed for the ChIPseqPipeline.</description>
+
+    <tasks>
+        
+   
+	<specialisationSet name="TpicsPeakCaller" type="TpicsPeakCaller" variable="trio">
+
+
+	<subtasks> 
+
+
+	<task name="TPICsPeakCaller" type="TPICsPeakCaller">
+        <resources>
+            <memory>8G</memory>
+        </resources>
+
+            <outputs>
+                <output name="OutputTPICs" deleteOnFailure="false">${WorkingDirectory}/Peaks/TPICS_Peaks/${Test}/${Test}_TPICS_Peaks.bed</output>
+            </outputs>
+    	<arguments>
+    	    <arg name="TestName">${WorkingDirectory}/Peaks/TPICS_Peaks/${Test}/</arg>
+	    <arg name="SampleName">${Test}</arg>
+	    <arg name="TheDirectory">${WorkingDirectory}</arg>
+		<arg name="GenomeForTPICS">${GT}</arg>
+		<arg name="shiftSize">${SS}</arg>
+		<arg name="Width">1000</arg>
+              <arg name="TestBed">${Test}.bed</arg>
+              <arg name="ControlBed">${Control}.bed</arg>
+              <arg name="TheWideScaleWidth">10000</arg>
+              <arg name="rlibs">${rlibs}</arg>
+    	</arguments> 
+            
+	</task>
+
+	     </subtasks>
+      </specialisationSet>
+
+
+    </tasks>
+</pipe:pipeline>
+

@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="ISO-8859-1" ?>
+<pipe:pipeline xmlns:pipe="http://cancerresearchuk.org/workflow/pipeline"
+               xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+               xsi:schemaLocation="http://cancerresearchuk.org/workflow/pipeline http://uk-cri-lbio01/schema/workflow/pipeline-1.4.xsd">
+
+    <name>ChipBamProcess Pipeline_P1</name>
+    <description>Pipeline for generating Bam files processed for the ChIPseqPipeline.</description>
+
+    <tasks>
+
+      	        <task name="MainHTMLReportProcess2" type="MainHTMLReportProcess2">
+
+			<resources>
+                        <memory>8G</memory>
+                        <maxMemory>32G</maxMemory> 
+			</resources>
+  			      <inputs>
+                        		<input name="SampleSheet">${WorkingDirectory}/SampleSheet.csv</input>
+	                    </inputs>
+	
+	                    <outputs>
+	                        <output name="HTMLReport" deleteOnFailure="false">${WorkingDirectory}/HTML_Report/ChIPSeqReport.html</output>
+	                    </outputs>
+				
+				<arguments>
+			    	    <arg name="TheDirectory">${WorkingDirectory}</arg>
+			    	    <arg name="rexec">${rexec}</arg>
+			    	    <arg name="pipelineBase">${pipelineBase}</arg>
+			    	    <arg name="rlibs">${rlibs}</arg>
+				</arguments> 
+			 </task>
+
+
+    </tasks>
+</pipe:pipeline>
+

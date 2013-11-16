@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="ISO-8859-1" ?>
+<task:task xmlns:task="http://cancerresearchuk.org/workflow/task"
+           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+           xsi:schemaLocation="http://cancerresearchuk.org/workflow/task http://uk-cri-lbio01/schema/workflow/task-1.4.xsd">
+
+
+    <name>MacsPeakCallMain</name>
+    <description>Controller Bam QC profiling for ChIPseqPipeline.</description>
+
+    <program type="commandLine">
+        <executable>
+		export R_LIBS=${rlibs}
+		${R_Executable}  --vanilla ${pipelineBase}/RScripts/R_MacsPeakCall_Main2.r ${WorkflowRunID} ${Config}
+	</executable>
+    </program>
+    <inputs>
+       <input name="Config" required="true" description="Config used as required input" />
+       <input name="Tracker1" required="true" description="Config used as required input" />       
+    </inputs>
+
+    <outputs>
+       <output name="Tracker" required="true" safeNaming="false" description="A dummy file to mark completion" />
+    </outputs>
+
+    <arguments>
+	<arg name="WorkflowRunID" required="true" description="Workflow ID"/>
+	<arg name="WorkflowDir" required="true" description="Where to look for the workflow output"/>
+	<arg name="R_Executable" required="true" description="R for workflow"/>
+	<arg name="pipelineBase" required="true" description="R for workflow"/>
+	<arg name="rlibs" required="true" description="R for workflow"/>
+    </arguments>
+
+</task:task>

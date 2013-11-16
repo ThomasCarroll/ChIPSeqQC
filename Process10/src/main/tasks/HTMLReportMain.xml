@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="ISO-8859-1" ?>
+<task:task xmlns:task="http://cancerresearchuk.org/workflow/task"
+           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+           xsi:schemaLocation="http://cancerresearchuk.org/workflow/task http://uk-cri-lbio01/schema/workflow/task-1.4.xsd">
+
+    <name>HTMLReportMain</name>
+    <description>HTML reporting for ChIPseqPipeline.</description>
+
+    <program type="commandLine">
+        <executable>
+		export R_LIBS=${rlibs}
+		${R_Executable}  --vanilla ${pipelineBase}/RScripts/R_HTMLReport_Main999.r ${WorkflowRunID} ${Config}
+	</executable>
+    </program>
+    <inputs>
+       <input name="Config" required="true" description="Config used as required input" />
+       
+       
+       <input name="Tracker0" required="true" description="Config used as required input" />       
+       <input name="Tracker1" required="true" description="Config used as required input" />
+       <input name="Tracker2" required="true" description="Config used as required input" />
+       <input name="Tracker3" required="true" description="Config used as required input" />
+       <input name="Tracker4" required="true" description="Config used as required input" />
+       <input name="Tracker5" required="true" description="Config used as required input" />
+       <input name="Tracker6" required="true" description="Config used as required input" />
+       <input name="Tracker7" required="true" description="Config used as required input" />
+       <input name="Tracker8" required="true" description="Config used as required input" />
+       <input name="Tracker9" required="true" description="Config used as required input" />
+       <input name="Tracker10" required="true" description="Config used as required input" />
+       <input name="Tracker11" required="true" description="Config used as required input" />       
+       <input name="Tracker12" required="true" description="Config used as required input" />         
+       <input name="Tracker13" required="true" description="Config used as required input" />         
+       
+    </inputs>
+
+    <outputs>
+       <output name="Tracker" required="true" safeNaming="false" description="A dummy file to mark completion" />
+    </outputs>
+
+    <arguments>
+	<arg name="WorkflowRunID" required="true" description="Workflow ID"/>
+	<arg name="WorkflowDir" required="true" description="Where to look for the workflow output"/>
+	<arg name="R_Executable" required="true" description="R for workflow"/>
+	<arg name="rlibs" required="true" description="R for workflow"/>
+	<arg name="pipelineBase" required="true" description="R for workflow"/>
+    </arguments>
+
+</task:task>

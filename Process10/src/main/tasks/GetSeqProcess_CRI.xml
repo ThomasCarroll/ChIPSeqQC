@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="ISO-8859-1" ?>
+<task:task xmlns:task="http://cancerresearchuk.org/workflow/task"
+           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+           xsi:schemaLocation="http://cancerresearchuk.org/workflow/task http://uk-cri-lbio01/schema/workflow/task-1.4.xsd">
+
+    <name>GetSeqProcess_CRI</name>
+    <description>Bam processing for ChIPseqPipeline.</description>
+
+    <program type="commandLine">
+        <executable>
+	mkdir -p ${TheDirectory}/Motif/${Test}/
+	export PYTHONPATH=${pythonlibs}
+	${python} ${pipelineBase}/PythonScripts/ExtractSequences.py ${PeakFile} ${Fasta} ${OutFile} ${chrlengths}
+	</executable>
+    </program>
+
+    <inputs>
+        <input name="PeakFile" required="true" description="The Peaks file." />
+        <input name="Fasta" required="true" description="The genome fasta sequence file." />
+    </inputs>
+
+    <outputs>
+        <output name="OutFile" required="true" safeNaming="false" description="Sequences under peaks by pipeline" />
+    </outputs>
+
+    <arguments>
+	<arg name="TheDirectory" required="true" description="Working Directory"/>
+	<arg name="Test" required="true" description="Working Directory"/>
+	<arg name="python" required="true" description="Working Directory"/>
+	<arg name="pipelineBase" required="true" description="Working Directory"/>
+	<arg name="pythonlibs" required="true" description="Working Directory"/>
+	<arg name="chrlengths" required="true" description="Working Directory"/>	
+    </arguments>
+
+</task:task>

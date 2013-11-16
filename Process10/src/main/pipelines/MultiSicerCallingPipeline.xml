@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="ISO-8859-1" ?>
+<pipe:pipeline xmlns:pipe="http://cancerresearchuk.org/pipeline/1.2"
+               xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+               xsi:schemaLocation="http://cancerresearchuk.org/pipeline/1.2 http://uk-cri-lsol03:8080/solexa/solexa01/schema/workflow/pipeline-1.2.xsd">
+
+    <name>ChipBamProcess Pipeline</name>
+    <description>Pipeline for generating Bam files processed for the ChIPseqPipeline.</description>
+
+    <tasks>
+        
+   
+	<specialisationSet name="SicerPeakCaller" type="SicerPeakCaller" variable="trio">
+
+
+	<subtasks> 
+
+
+	<task name="SicerProcess" type="SicerProcess">
+        <resources>
+            <memory>8G</memory>
+        </resources>
+
+            <outputs>
+                <output name="OutputSicer" deleteOnFailure="false">${WorkingDirectory}/Peaks/Sicer_Peaks/${Test}/${Test}-W200-G600-islands-summary-FDR.01</output>
+            </outputs>
+    	<arguments>
+    	    <arg name="TestName">${WorkingDirectory}/Peaks/Sicer_Peaks/${Test}</arg>
+	    <arg name="TheDirectory">${WorkingDirectory}</arg>
+		<arg name="GenomeForSicer">${GS}</arg>
+		<arg name="shiftSize">${SS}</arg>
+              <arg name="TestBed">${Test}.bed</arg>
+              <arg name="ControlBed">${Control}.bed</arg>
+    	</arguments> 
+            
+	</task>
+
+	     </subtasks>
+      </specialisationSet>
+
+
+    </tasks>
+</pipe:pipeline>
+

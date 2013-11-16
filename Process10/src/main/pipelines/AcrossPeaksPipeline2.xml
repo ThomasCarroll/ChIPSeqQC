@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="ISO-8859-1" ?>
+<pipe:pipeline xmlns:pipe="http://cancerresearchuk.org/workflow/pipeline"
+               xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+               xsi:schemaLocation="http://cancerresearchuk.org/workflow/pipeline http://uk-cri-lbio01/schema/workflow/pipeline-1.4.xsd">
+
+    <name>Feature Profile Pipeline</name>
+    <description>Profiling features</description>
+
+    <tasks>
+	<specialisationSet name="AcrossPeaksCaller" type="AcrossPeaksCaller" variable="trio">
+
+	<subtasks> 
+
+	<task name="AcrossPeakCallsProcess2" type="AcrossPeakCallsProcess2">
+
+	 <resources>
+            <memory>4G</memory>
+         <maxMemory>16G</maxMemory> 
+		<!--<cpus>4</cpus>-->
+        </resources>
+        
+	<inputs>
+   	     <input name="Peaks1">${Peaks1}</input>
+   	     <input name="Peaks2">${Peaks2}</input>
+       </inputs>
+	     
+       <outputs>
+               <output name="Outfile1"  deleteOnFailure="true">${Outfile1}</output>
+               <output name="Outfile2"  deleteOnFailure="true">${Outfile2}</output>
+       </outputs>
+       <arguments>
+    	        <arg name="rexec">${rexec}</arg>
+    	        <arg name="pipelineBase">${pipelineBase}</arg>
+    	        <arg name="rlibs">${rlibs}</arg>
+	</arguments> 	
+
+     </task>
+	</subtasks> 
+ 	</specialisationSet> 
+
+    </tasks>
+
+</pipe:pipeline>

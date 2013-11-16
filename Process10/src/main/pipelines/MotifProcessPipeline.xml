@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="ISO-8859-1" ?>
+<pipe:pipeline xmlns:pipe="http://cancerresearchuk.org/workflow/pipeline"
+               xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+               xsi:schemaLocation="http://cancerresearchuk.org/workflow/pipeline http://uk-cri-lbio01/schema/workflow/pipeline-1.4.xsd">
+
+    <name>ChipBamProcess Pipeline_P1</name>
+    <description>Pipeline for generating Bam files processed for the ChIPseqPipeline.</description>
+
+    <tasks>
+
+	<specialisationSet name="MotifCaller" type="MotifCaller" variable="trio">
+
+	<subtasks> 
+     	 <task name="GetTopPeaksProcess" type="GetTopPeaksProcess">
+
+
+		    <resources>
+                        <memory>2G</memory>
+                        <maxMemory>16G</maxMemory>                        	
+                    </resources>
+
+            <inputs>
+                <input name="PeakFile">${PeakFileLocation}</input>
+                <input name="Fasta" >${Fasta}</input>
+            </inputs>
+
+            <outputs>
+                <output name="OutFile"  deleteOnFailure="false">${WorkingDirectory}/Motif/${Test}/Top${NPeaks}${Test}.bed</output>		
+            </outputs>
+	<arguments>
+    	    <arg name="TheDirectory">${WorkingDirectory}</arg>
+    	    <arg name="RankColumn">5</arg>
+    	    <arg name="RankOrder">Rank</arg>
+    	    <arg name="NPeaks">10000</arg>
+    	    <arg name="Test">${Test}</arg>
+	   <arg name="SamplePeakDir"></arg>
+    	</arguments> 
+         </task>
+  
+
+
+	 <task name="GetSeqProcess" type="GetSeqProcess">
+  	<depends>
+	     <task>GetTopPeaksProcess</task>
+   	</depends>   
+        <resources>
+                        <memory>4G</memory>
+                        <maxMemory>16G</maxMemory>                        	
+        </resources>
+            <inputs>
+                <input name="PeakFile">${WorkingDirectory}/Motif/${Test}/Top${NPeaks}${Test}.bed</input>
+                <input name="Fasta" >${Fasta}</input>
+            </inputs>
+
+            <outputs>
+                <output name="OutFile"  deleteOnFailure="false">${WorkingDirectory}/Motif/${Test}/SeqUnderPeaks.fa</output>		
+            </outputs>
+	<arguments>
+    	    <arg name="TheDirectory">${WorkingDirectory}</arg>
+    	    <arg name="Test">${Test}</arg>  
+    	</arguments> 
+         </task>
+
+
+
+	 <task name="MemeChipProcess" type="MemeChipProcess">
+   	<depends>
+	     <task>GetSeqProcess</task>
+   	</depends>             
+        
+        <resources>
+                 <memory>4G</memory>
+                 <maxMemory>16G</maxMemory>                        	
+        </resources>
+
+            <inputs>
+                <input name="Sequences">${WorkingDirectory}/Motif/${Test}/SeqUnderPeaks.fa</input>
+                <input name="MotifDatabase">${MotifDatabaseLocation}</input>                
+            </inputs>
+
+            <outputs>
+                <output name="MemeChip_Res"  deleteOnFailure="false">${WorkingDirectory}/Motif/${Test}/Denovo/index.html</output>
+            </outputs>
+	<arguments>
+    	    <arg name="TheDirectory">${WorkingDirectory}</arg>
+    	    <arg name="Test">${Test}</arg>    	    
+    	</arguments> 
+         </task>
+
+
+	 <task name="AmeProcess" type="AmeProcess">
+   	<depends>
+	     <task>GetSeqProcess</task>
+   	</depends>             
+        
+        <resources>
+                 <memory>4G</memory>
+                 <maxMemory>16G</maxMemory>   
+        </resources>
+            <inputs>
+                <input name="Sequences">${WorkingDirectory}/Motif/${Test}/SeqUnderPeaks.fa</input>
+                <input name="MotifDatabase">${MotifDatabaseLocation}</input>                
+            </inputs>
+
+            <outputs>
+                <output name="Ame_Res"  deleteOnFailure="false">${WorkingDirectory}/Motif/${Test}/Known/ame.txt</output>
+            </outputs>
+	<arguments>
+    	    <arg name="TheDirectory">${WorkingDirectory}</arg>
+    	    <arg name="Test">${Test}</arg>    	    
+    	</arguments> 
+         </task>
+
+	     </subtasks>
+      </specialisationSet>
+
+    </tasks>
+</pipe:pipeline>
+

@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="ISO-8859-1" ?>
+<task:task xmlns:task="http://cancerresearchuk.org/workflow/task"
+           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+           xsi:schemaLocation="http://cancerresearchuk.org/workflow/task http://uk-cri-lbio01/schema/workflow/task-1.4.xsd">
+
+    <name>AnnotatePeakProcess</name>
+    <description>Wig histogram for ChIPseqPipeline.</description>
+
+    <program type="commandLine">
+        <executable>
+	export R_LIBS='/home/mib-cri/local/lib64/R/library'
+	/home/mib-cri/local/bin/Rscript /lustre/mib-cri/carrol09/Work/MyPipe/Process10/RScripts/RGOAnno2.r ${genome} ${Peaks} ${AnnotatedPeaks} ${SummaryAnnotation} ${EnrichmentFile}
+	</executable>
+    </program>
+
+    <inputs>
+        <input name="Peaks" required="true" description="The Bam file." />
+    </inputs>
+
+    <outputs>
+        <output name="AnnotatedPeaks" required="true" safeNaming="false" description="Histogram processes by pipeline" />
+        <output name="SummaryAnnotation" required="true" safeNaming="false" description="Histogram processes by pipeline" />
+        <output name="EnrichmentFile" required="true" safeNaming="false" description="Histogram processes by pipeline" />
+    </outputs>
+
+
+    <arguments>
+       <arg name="genome" required="true" description="genome." />
+	<arg name="TheDirectory" required="true" description="Working Directory"/>
+    </arguments>
+
+</task:task>

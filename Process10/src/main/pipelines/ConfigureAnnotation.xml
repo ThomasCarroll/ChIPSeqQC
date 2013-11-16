@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="ISO-8859-1" ?>
+<pipe:pipeline xmlns:pipe="http://cancerresearchuk.org/workflow/pipeline"
+               xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+               xsi:schemaLocation="http://cancerresearchuk.org/workflow/pipeline http://uk-cri-lbio01/schema/workflow/pipeline-1.4.xsd">
+
+    <name>Configure_Annotation</name>
+    <description>Make annotation for pipeline.</description>
+
+    <tasks>
+
+	<specialisationSet name="RealignCaller" type="RealignCaller" variable="trio">
+
+	<subtasks> 
+ 
+	 <task name="BWAIndex" type="BWAIndex">
+        <resources>
+            <memory>2G</memory>
+         <maxMemory>16G</maxMemory> 
+		<!--<cpus>4</cpus>-->
+
+        </resources>
+            <inputs>
+                <input name="Genome">${Genome}</input>
+            </inputs>
+	     <outputs>
+               <output name="GenomeBWAIndex"  deleteOnFailure="true">${Genome}.sa</output>
+            </outputs>
+		<arguments>
+		<arg name="bwa">${bwa}</arg>
+	    	</arguments> 
+       	  </task>
+
+
+	 <task name="faiIndex" type="faiIndex">
+        <resources>
+            <memory>2G</memory>
+         <maxMemory>16G</maxMemory> 
+		<!--<cpus>4</cpus>-->
+
+        </resources>
+            <inputs>
+                <input name="Genome">${Genome}</input>
+            </inputs>
+	     <outputs>
+               <output name="GenomeFAIIndex"  deleteOnFailure="true">${Genome}.fai</output>
+            </outputs>
+		<arguments>
+    		<arg name="samtools">${samtools}</arg>		
+	    	</arguments> 
+       	  </task>
+
+
+	 <task name="MakeSeqDictionary" type="MakeSeqDictionary">
+
+	<resources>
+            <memory>2G</memory>
+         <maxMemory>16G</maxMemory> 
+        </resources>
+
+            <inputs>
+                <input name="Genome">${Genome}</input>
+            </inputs>
+	     <outputs>
+               <output name="SeqDictionary"  deleteOnFailure="true">${Genome}.sam</output>
+            </outputs>
+		<arguments>
+    		<arg name="picard">${picard}</arg>		
+    		<arg name="java">${java}</arg>	    		
+	    	</arguments> 
+       	  </task>
+
+	 <task name="MakeChromosomeLengths" type="MakeChromosomeLengths">
+        <depends>
+            <task>MakeSeqDictionary</task>
+        </depends>  
+
+	<resources>
+            <memory>2G</memory>
+         <maxMemory>16G</maxMemory> 
+        </resources>
+
+            <inputs>
+                <input name="SeqDictionary">${Genome}.sam</input>
+            </inputs>
+	     <outputs>
+               <output name="ChrLengths"  deleteOnFailure="true">${Genome}_ChrLengths.txt</output>
+            </outputs>
+		<arguments>
+    		<arg name="python">${python}</arg>
+    		<arg name="pythonlibs">${pythonlibs}</arg>    		
+    		<arg name="pipelineBase">${pipelineBase}</arg>    		    		
+	    	</arguments> 
+       	  </task>
+
+
+	</subtasks>
+	</specialisationSet>
+    </tasks>
+
+</pipe:pipeline>

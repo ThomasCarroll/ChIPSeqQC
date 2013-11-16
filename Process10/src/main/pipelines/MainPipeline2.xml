@@ -1,0 +1,528 @@
+<?xml version="1.0" encoding="ISO-8859-1" ?>
+<pipe:pipeline xmlns:pipe="http://cancerresearchuk.org/workflow/pipeline"
+               xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+               xsi:schemaLocation="http://cancerresearchuk.org/workflow/pipeline http://uk-cri-lbio01/schema/workflow/pipeline-1.4.xsd">
+
+    <name>Main Pipeline</name>
+    <description>Pipeline for ChIPseq.</description>
+
+    <tasks>
+        
+
+
+	 <task name="SampleSheetSetup" type="SampleSheetSetup">
+        <resources>
+            <memory>1G</memory>
+        </resources>
+
+	<inputs>
+       	<input name="Config">${Config}</input>
+    	</inputs>
+
+    	<outputs>
+       	<output name="Tracker">${WorkflowDir}/${PathwayTracker}_SampleSheetSetup.txt</output>
+    	</outputs>
+
+    	<arguments>
+    	    <arg name="WorkflowRunID">${PathwayTracker}</arg>
+	    <arg name="WorkflowDir">${WorkflowDir}</arg>
+	    <arg name="R_Executable">${R_Executable}</arg>
+	    <arg name="pipelineBase">${pipelineBase}</arg>
+	    <arg name="rlibs">${rlibs}</arg>
+    	</arguments> 
+            
+	</task>
+
+	 <task name="BamProfileMain" type="BamProfileMain">
+       <depends>
+		<task>SampleSheetSetup</task>
+       </depends>
+
+        <resources>
+            <memory>1G</memory>
+        </resources>
+
+	<inputs>
+       	<input name="Config">${Config}</input>
+		<input name="Tracker1">${WorkflowDir}/${PathwayTracker}_SampleSheetSetup.txt</input>
+    	</inputs>
+
+    	<outputs>
+       	<output name="Tracker">${WorkflowDir}/${PathwayTracker}_BamProfile_Main_2.txt</output>
+    	</outputs>
+
+    	<arguments>
+    	    <arg name="WorkflowRunID">${PathwayTracker}</arg>
+	    <arg name="WorkflowDir">${WorkflowDir}</arg>
+	    <arg name="R_Executable">${R_Executable}</arg>
+	    <arg name="pipelineBase">${pipelineBase}</arg>
+	    <arg name="rlibs">${rlibs}</arg>
+    	</arguments> 
+            
+	</task>
+
+
+
+
+
+
+	 <task name="MacsPeakCallMain" type="MacsPeakCallMain">
+       <depends>
+		<task>SampleSheetSetup</task>
+       </depends>
+
+        <resources>
+            <memory>1G</memory>
+        </resources>
+
+	<inputs>
+       	<input name="Config">${Config}</input>
+		<input name="Tracker1">${WorkflowDir}/${PathwayTracker}_SampleSheetSetup.txt</input>
+    	</inputs>
+
+    	<outputs>
+       	<output name="Tracker">${WorkflowDir}/${PathwayTracker}_MacsPeakCall_Main_2.txt</output>
+    	</outputs>
+
+    	<arguments>
+    	    <arg name="WorkflowRunID">${PathwayTracker}</arg>
+	    <arg name="WorkflowDir">${WorkflowDir}</arg>
+	    <arg name="R_Executable">${R_Executable}</arg>
+	    <arg name="pipelineBase">${pipelineBase}</arg>
+	    <arg name="rlibs">${rlibs}</arg>
+    	</arguments> 
+            
+	</task>
+
+	 <task name="MacsPeakProfileMain" type="PeakProfileMain">
+       <depends>
+		<task>MacsPeakCallMain</task>
+       </depends>
+
+        <resources>
+            <memory>1G</memory>
+        </resources>
+
+	<inputs>
+       	<input name="Config">${Config}</input>
+		<input name="Tracker2">${WorkflowDir}/${PathwayTracker}_MacsPeakCall_Main_2.txt</input>
+    	</inputs>
+
+    	<outputs>
+       	<output name="Tracker">${WorkflowDir}/${PathwayTracker}_Macs_PeakProfile_Main_3.txt</output>
+    	</outputs>
+
+    	<arguments>
+    	    <arg name="WorkflowRunID">${PathwayTracker}</arg>
+	    <arg name="WorkflowDir">${WorkflowDir}</arg>
+	    <arg name="R_Executable">${R_Executable}</arg>
+	    <arg name="PeakCaller">Macs</arg>
+	    <arg name="pipelineBase">${pipelineBase}</arg>
+	    <arg name="rlibs">${rlibs}</arg>
+    	</arguments> 
+            
+	</task>
+
+	 <task name="MacsPeakMotifMain" type="PeakMotifMain">
+       <depends>
+		<task>MacsPeakCallMain</task>
+       </depends>
+
+        <resources>
+            <memory>1G</memory>
+        </resources>
+
+	<inputs>
+       	<input name="Config">${Config}</input>
+		<input name="Tracker2">${WorkflowDir}/${PathwayTracker}_MacsPeakCall_Main_2.txt</input>
+    	</inputs>
+
+    	<outputs>
+       	<output name="Tracker">${WorkflowDir}/${PathwayTracker}_Macs_PeakMotif_Main_3.txt</output>
+    	</outputs>
+
+    	<arguments>
+    	    <arg name="WorkflowRunID">${PathwayTracker}</arg>
+	    <arg name="WorkflowDir">${WorkflowDir}</arg>
+	    <arg name="R_Executable">${R_Executable}</arg>
+	    <arg name="PeakCaller">Macs</arg>
+	    <arg name="pipelineBase">${pipelineBase}</arg>
+	    <arg name="rlibs">${rlibs}</arg>
+    	</arguments> 
+            
+	</task>
+
+	 <task name="MacsBetweenPeaksMain" type="BetweenPeaksMain">
+       <depends>
+		<task>MacsPeakCallMain</task>
+       </depends>
+
+        <resources>
+            <memory>1G</memory>
+        </resources>
+
+	<inputs>
+       	<input name="Config">${Config}</input>
+		<input name="Tracker2">${WorkflowDir}/${PathwayTracker}_MacsPeakCall_Main_2.txt</input>
+    	</inputs>
+
+    	<outputs>
+       	<output name="Tracker">${WorkflowDir}/${PathwayTracker}_Macs_BetweenPeaks_Main_3.txt</output>
+    	</outputs>
+
+    	<arguments>
+    	    <arg name="WorkflowRunID">${PathwayTracker}</arg>
+	    <arg name="WorkflowDir">${WorkflowDir}</arg>
+	    <arg name="R_Executable">${R_Executable}</arg>
+	    <arg name="PeakCaller">Macs</arg>
+	    <arg name="pipelineBase">${pipelineBase}</arg>
+	    <arg name="rlibs">${rlibs}</arg>
+    	</arguments> 
+            
+	</task>
+
+	 <task name="SicerPeakCallMain" type="SicerPeakCallMain">
+       <depends>
+		<task>SampleSheetSetup</task>
+       </depends>
+
+        <resources>
+            <memory>1G</memory>
+        </resources>
+
+	<inputs>
+       	<input name="Config">${Config}</input>
+		<input name="Tracker2">${WorkflowDir}/${PathwayTracker}_SampleSheetSetup.txt</input>
+    	</inputs>
+
+    	<outputs>
+       	<output name="Tracker">${WorkflowDir}/${PathwayTracker}_SicerPeakCall_Main_2.txt</output>
+    	</outputs>
+
+    	<arguments>
+    	    <arg name="WorkflowRunID">${PathwayTracker}</arg>
+	    <arg name="WorkflowDir">${WorkflowDir}</arg>
+	    <arg name="R_Executable">${R_Executable}</arg>
+	    <arg name="pipelineBase">${pipelineBase}</arg>
+	    <arg name="rlibs">${rlibs}</arg>
+    	</arguments> 
+            
+	</task>
+
+	 <task name="SicerPeakProfileMain" type="PeakProfileMain">
+       <depends>
+		<task>SicerPeakCallMain</task>
+       </depends>
+
+        <resources>
+            <memory>1G</memory>
+        </resources>
+
+	<inputs>
+       	<input name="Config">${Config}</input>
+		<input name="Tracker2">${WorkflowDir}/${PathwayTracker}_SicerPeakCall_Main_2.txt</input>
+    	</inputs>
+
+    	<outputs>
+       	<output name="Tracker">${WorkflowDir}/${PathwayTracker}_Sicer_PeakProfile_Main_3.txt</output>
+    	</outputs>
+
+    	<arguments>
+    	    <arg name="WorkflowRunID">${PathwayTracker}</arg>
+	    <arg name="WorkflowDir">${WorkflowDir}</arg>
+	    <arg name="R_Executable">${R_Executable}</arg>
+	    <arg name="PeakCaller">Sicer</arg>
+	    <arg name="pipelineBase">${pipelineBase}</arg>
+	    <arg name="rlibs">${rlibs}</arg>
+    	</arguments> 
+            
+	</task>
+
+	 <task name="SicerPeakMotifMain" type="PeakMotifMain">
+       <depends>
+		<task>SicerPeakCallMain</task>
+       </depends>
+
+        <resources>
+            <memory>1G</memory>
+        </resources>
+
+	<inputs>
+       	<input name="Config">${Config}</input>
+		<input name="Tracker2">${WorkflowDir}/${PathwayTracker}_SicerPeakCall_Main_2.txt</input>
+    	</inputs>
+
+    	<outputs>
+       	<output name="Tracker">${WorkflowDir}/${PathwayTracker}_Sicer_PeakMotif_Main_3.txt</output>
+    	</outputs>
+
+    	<arguments>
+    	    <arg name="WorkflowRunID">${PathwayTracker}</arg>
+	    <arg name="WorkflowDir">${WorkflowDir}</arg>
+	    <arg name="R_Executable">${R_Executable}</arg>
+	    <arg name="PeakCaller">Sicer</arg>
+	    <arg name="pipelineBase">${pipelineBase}</arg>
+	    <arg name="rlibs">${rlibs}</arg>
+    	</arguments> 
+            
+	</task>
+
+	 <task name="SicerBetweenPeaksMain" type="BetweenPeaksMain">
+       <depends>
+		<task>SicerPeakCallMain</task>
+       </depends>
+
+        <resources>
+            <memory>1G</memory>
+        </resources>
+
+	<inputs>
+       	<input name="Config">${Config}</input>
+		<input name="Tracker2">${WorkflowDir}/${PathwayTracker}_SicerPeakCall_Main_2.txt</input>
+    	</inputs>
+
+    	<outputs>
+       	<output name="Tracker">${WorkflowDir}/${PathwayTracker}_Sicer_BetweenPeaks_Main_3.txt</output>
+    	</outputs>
+
+    	<arguments>
+    	    <arg name="WorkflowRunID">${PathwayTracker}</arg>
+	    <arg name="WorkflowDir">${WorkflowDir}</arg>
+	    <arg name="R_Executable">${R_Executable}</arg>
+	    <arg name="PeakCaller">Sicer</arg>
+	    <arg name="pipelineBase">${pipelineBase}</arg>
+	    <arg name="rlibs">${rlibs}</arg>
+    	</arguments> 
+            
+	</task>
+
+
+
+
+
+
+
+
+	 <task name="TPICsPeakCallMain" type="TPICsPeakCallMain">
+       <depends>
+		<task>SampleSheetSetup</task>
+       </depends>
+
+        <resources>
+            <memory>1G</memory>
+        </resources>
+
+	<inputs>
+       	<input name="Config">${Config}</input>
+		<input name="Tracker1">${WorkflowDir}/${PathwayTracker}_SampleSheetSetup.txt</input>
+    	</inputs>
+
+    	<outputs>
+       	<output name="Tracker">${WorkflowDir}/${PathwayTracker}_TPICsPeakCall_Main_2.txt</output>
+    	</outputs>
+
+    	<arguments>
+    	    <arg name="WorkflowRunID">${PathwayTracker}</arg>
+	    <arg name="WorkflowDir">${WorkflowDir}</arg>
+	    <arg name="R_Executable">${R_Executable}</arg>
+	    <arg name="pipelineBase">${pipelineBase}</arg>
+	    <arg name="rlibs">${rlibs}</arg>
+    	</arguments> 
+            
+	</task>
+
+	 <task name="TPICsPeakProfileMain" type="PeakProfileMain">
+       <depends>
+		<task>TPICsPeakCallMain</task>
+       </depends>
+
+        <resources>
+            <memory>1G</memory>
+        </resources>
+
+	<inputs>
+       	<input name="Config">${Config}</input>
+		<input name="Tracker2">${WorkflowDir}/${PathwayTracker}_TPICsPeakCall_Main_2.txt</input>
+    	</inputs>
+
+    	<outputs>
+       	<output name="Tracker">${WorkflowDir}/${PathwayTracker}_TPICs_PeakProfile_Main_3.txt</output>
+    	</outputs>
+
+    	<arguments>
+    	    <arg name="WorkflowRunID">${PathwayTracker}</arg>
+	    <arg name="WorkflowDir">${WorkflowDir}</arg>
+	    <arg name="R_Executable">${R_Executable}</arg>
+	    <arg name="PeakCaller">TPICs</arg>
+	    <arg name="pipelineBase">${pipelineBase}</arg>
+	    <arg name="rlibs">${rlibs}</arg>
+    	</arguments> 
+            
+	</task>
+
+	 <task name="TPICsPeakMotifMain" type="PeakMotifMain">
+       <depends>
+		<task>TPICsPeakCallMain</task>
+       </depends>
+
+        <resources>
+            <memory>1G</memory>
+        </resources>
+
+	<inputs>
+       	<input name="Config">${Config}</input>
+		<input name="Tracker2">${WorkflowDir}/${PathwayTracker}_TPICsPeakCall_Main_2.txt</input>
+    	</inputs>
+
+    	<outputs>
+       	<output name="Tracker">${WorkflowDir}/${PathwayTracker}_TPICs_PeakMotif_Main_3.txt</output>
+    	</outputs>
+
+    	<arguments>
+    	    <arg name="WorkflowRunID">${PathwayTracker}</arg>
+	    <arg name="WorkflowDir">${WorkflowDir}</arg>
+	    <arg name="R_Executable">${R_Executable}</arg>
+	    <arg name="PeakCaller">TPICs</arg>
+	    <arg name="pipelineBase">${pipelineBase}</arg>
+	    <arg name="rlibs">${rlibs}</arg>
+    	</arguments> 
+            
+	</task>
+
+	 <task name="TPICsBetweenPeaksMain" type="BetweenPeaksMain">
+       <depends>
+		<task>TPICsPeakCallMain</task>
+       </depends>
+
+        <resources>
+            <memory>1G</memory>
+        </resources>
+
+	<inputs>
+       	<input name="Config">${Config}</input>
+		<input name="Tracker2">${WorkflowDir}/${PathwayTracker}_TPICsPeakCall_Main_2.txt</input>
+    	</inputs>
+
+    	<outputs>
+       	<output name="Tracker">${WorkflowDir}/${PathwayTracker}_TPICs_BetweenPeaks_Main_3.txt</output>
+    	</outputs>
+
+    	<arguments>
+    	    <arg name="WorkflowRunID">${PathwayTracker}</arg>
+	    <arg name="WorkflowDir">${WorkflowDir}</arg>
+	    <arg name="R_Executable">${R_Executable}</arg>
+	    <arg name="PeakCaller">TPICs</arg>
+	    <arg name="pipelineBase">${pipelineBase}</arg>
+	    <arg name="rlibs">${rlibs}</arg>
+    	</arguments> 
+            
+	</task>
+
+
+
+	 <task name="AcrossPeakCallsMain" type="AcrossPeakCallsMain">
+       <depends>
+		<task>MacsPeakCallMain</task>
+		<task>SicerPeakCallMain</task>
+		<task>TPICsPeakCallMain</task>
+       </depends>
+
+        <resources>
+            <memory>1G</memory>
+        </resources>
+
+	<inputs>
+       	<input name="Config">${Config}</input>
+		<input name="Tracker1">${WorkflowDir}/${PathwayTracker}_MacsPeakCall_Main_2.txt</input>
+		<input name="Tracker2">${WorkflowDir}/${PathwayTracker}_SicerPeakCall_Main_2.txt</input>
+		<input name="Tracker3">${WorkflowDir}/${PathwayTracker}_TPICsPeakCall_Main_2.txt</input>
+    	</inputs>
+
+    	<outputs>
+       	<output name="Tracker">${WorkflowDir}/${PathwayTracker}_AcrossPeakCalls_Main_3.txt</output>
+    	</outputs>
+
+    	<arguments>
+    	    <arg name="WorkflowRunID">${PathwayTracker}</arg>
+	    <arg name="WorkflowDir">${WorkflowDir}</arg>
+	    <arg name="R_Executable">${R_Executable}</arg>
+	    <arg name="pipelineBase">${pipelineBase}</arg>
+	    <arg name="rlibs">${rlibs}</arg>
+    	</arguments> 
+            
+	</task>
+
+
+	 <task name="HTMLReportMain" type="HTMLReportMain">
+       <depends>
+
+		<task>BamProfileMain</task>
+
+		<task>MacsPeakCallMain</task>
+		<task>SicerPeakCallMain</task>
+		<task>TPICsPeakCallMain</task>
+		<task>AcrossPeakCallsMain</task>
+
+		<task>TPICsPeakMotifMain</task>
+		<task>TPICsBetweenPeaksMain</task>
+		<task>TPICsPeakProfileMain</task>
+
+		<task>MacsPeakMotifMain</task>
+		<task>MacsBetweenPeaksMain</task>
+		<task>MacsPeakProfileMain</task>
+
+
+		<task>SicerPeakMotifMain</task>
+		<task>SicerBetweenPeaksMain</task>
+		<task>SicerPeakProfileMain</task>
+
+
+       </depends>
+
+        <resources>
+            <memory>1G</memory>
+        </resources>
+
+	<inputs>
+       	<input name="Config">${Config}</input>
+		<input name="Tracker0">${WorkflowDir}/${PathwayTracker}_BamProfile_Main_2.txt</input>
+		<input name="Tracker1">${WorkflowDir}/${PathwayTracker}_MacsPeakCall_Main_2.txt</input>
+		<input name="Tracker2">${WorkflowDir}/${PathwayTracker}_SicerPeakCall_Main_2.txt</input>
+		<input name="Tracker3">${WorkflowDir}/${PathwayTracker}_TPICsPeakCall_Main_2.txt</input>
+		<input name="Tracker4">${WorkflowDir}/${PathwayTracker}_AcrossPeakCalls_Main_3.txt</input>
+
+		<input name="Tracker5">${WorkflowDir}/${PathwayTracker}_TPICs_BetweenPeaks_Main_3.txt</input>
+		<input name="Tracker6">${WorkflowDir}/${PathwayTracker}_TPICs_PeakMotif_Main_3.txt</input>
+		<input name="Tracker7">${WorkflowDir}/${PathwayTracker}_TPICs_PeakProfile_Main_3.txt</input>
+
+		<input name="Tracker8">${WorkflowDir}/${PathwayTracker}_Macs_BetweenPeaks_Main_3.txt</input>
+		<input name="Tracker9">${WorkflowDir}/${PathwayTracker}_Macs_PeakMotif_Main_3.txt</input>
+		<input name="Tracker10">${WorkflowDir}/${PathwayTracker}_Macs_PeakProfile_Main_3.txt</input>
+
+
+		<input name="Tracker11">${WorkflowDir}/${PathwayTracker}_Sicer_BetweenPeaks_Main_3.txt</input>
+		<input name="Tracker12">${WorkflowDir}/${PathwayTracker}_Sicer_PeakMotif_Main_3.txt</input>
+		<input name="Tracker13">${WorkflowDir}/${PathwayTracker}_Sicer_PeakProfile_Main_3.txt</input>
+
+    	</inputs>
+
+    	<outputs>
+       	<output name="Tracker">${WorkflowDir}/${PathwayTracker}_HTMLReport_Main_999.txt</output>
+    	</outputs>
+
+    	<arguments>
+    	    <arg name="WorkflowRunID">${PathwayTracker}</arg>
+	    <arg name="WorkflowDir">${WorkflowDir}</arg>
+	    <arg name="R_Executable">${R_Executable}</arg>
+	    <arg name="pipelineBase">${pipelineBase}</arg>
+	    <arg name="rlibs">${rlibs}</arg>
+    	</arguments> 
+            
+	</task>
+
+
+
+
+
+    </tasks>
+</pipe:pipeline>

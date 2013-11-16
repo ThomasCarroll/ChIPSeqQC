@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="ISO-8859-1" ?>
+<task:task xmlns:task="http://cancerresearchuk.org/workflow/task"
+           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+           xsi:schemaLocation="http://cancerresearchuk.org/workflow/task http://uk-cri-lbio01/schema/workflow/task-1.4.xsd">
+
+    <name>Demultiplex</name>
+    <description>Runs Gordon's demultiplexer.</description>
+
+    <program type="commandLine">
+        <executable>
+            cd ${outputDirectory}
+            ${demultiplexPath}/demuxIllumina \
+                ${zip} ${permittedErrors} \
+                ${barcodeFile} \
+                ${fastqFile} \
+                2> ${lostReadSummaryFile}
+        </executable>
+    </program>
+
+    <inputs>
+        <input name="barcodeFile" quoted="true" description="The tab delimited barcode file." />
+        <input name="fastqFile" quoted="true" description="The composite FASTQ file." />
+    </inputs>
+
+    <outputs>
+        <output name="lostReadSummaryFile" required="true" quoted="true" description="The summary of reads lost during demultiplexing." />
+    </outputs>
+
+    <arguments>
+        <arg name="outputDirectory" quoted="true" description="The directory to write the output files into." />
+        <arg name="permittedErrors" flag="-s" type="integer" required="false" default="1"
+             description="The number of errors in the barcode matching that are permitted."/>
+        <arg name="zip" flag="-c" type="boolean" novalue="true" description="Whether to gzip the output files." />
+        <arg name="demultiplexPath" required="false" default="/home/mib-cri/software/demultiplexing/bin/"
+             description="The installation directory of the demultiplexing program."/>
+    </arguments>
+
+</task:task>

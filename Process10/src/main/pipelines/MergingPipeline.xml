@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="ISO-8859-1" ?>
+<pipe:pipeline xmlns:pipe="http://cancerresearchuk.org/workflow/pipeline"
+               xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+               xsi:schemaLocation="http://cancerresearchuk.org/workflow/pipeline http://uk-cri-lbio01/schema/workflow/pipeline-1.4.xsd">
+
+    <name>ChipBamProcess Pipeline</name>
+    <description>Pipeline for generating Bam files processed for the ChIPseqPipeline.</description>
+
+    <tasks>
+        
+
+
+	<specialisationSet name="MergeCaller" type="MergeCaller" variable="trio">
+
+	<subtasks> 
+       
+	 <task name="MergeProcess" type="MergeProcess">
+        <resources>
+            <memory>8G</memory>
+        </resources>
+            <outputs>
+                <output name="MergedFile" deleteOnFailure="false">${bamDir}/${OutName}_TMP.bam</output>
+            </outputs>
+    	<arguments>
+    	    <arg name="InputVector">${InputName}</arg>
+    	    <arg name="TheDirectory">${WorkingDirectory}</arg>
+	    <arg name="OutputName">${OutName}</arg>
+    	    <arg name="picard">${picard}</arg>
+	    <arg name="java">${java}</arg>
+	    <arg name="bamDir">${bamDir}</arg>	    
+    	</arguments> 
+            
+	</task>
+
+
+	<task name="MarkDuplicateProcess" type="MarkDuplicateProcess">
+       <depends>
+		<task>MergeProcess</task>
+	</depends>
+	<resources>
+            <memory>8G</memory>
+        </resources>
+	  <inputs>
+		 <input name="MergedFile" temporary="true">${bamDir}/${OutName}_TMP.bam</input>
+	 </inputs>
+            <outputs>
+                <output name="MarkedFile" deleteOnFailure="false">${bamDir}/${OutName}.bwa.bam</output>
+            </outputs>
+    	<arguments>
+    	    <arg name="TheDirectory">${WorkingDirectory}</arg>
+	    <arg name="OutputName">${OutName}</arg>
+    	    <arg name="picard">${picard}</arg>
+	    <arg name="java">${java}</arg>
+	    <arg name="bamDir">${bamDir}</arg>	    
+    	</arguments> 
+	</task>
+
+	     </subtasks>
+      </specialisationSet>
+    </tasks>
+</pipe:pipeline>

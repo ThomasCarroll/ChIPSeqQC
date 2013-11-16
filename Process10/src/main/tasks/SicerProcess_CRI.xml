@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="ISO-8859-1" ?>
+<task:task xmlns:task="http://cancerresearchuk.org/workflow/task"
+           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+           xsi:schemaLocation="http://cancerresearchuk.org/workflow/task http://uk-cri-lbio01/schema/workflow/task-1.4.xsd">
+
+    <name>SicerProcess_CRI</name>
+    <description>Sicer peak call processing for ChIPseqPipeline.</description>
+
+    <program type="commandLine">
+        <executable>
+	mkdir -p ${TestName}
+	cd ${TestName}
+	export PYTHONPATH=${pythonlibs}
+	sh ${pipelineBase}/BashScripts/SICER.sh ${BamDirectory}/ ${TestBed} ${ControlBed}  ${TestName} ${GenomeForSicer} 1 ${Window} ${shiftSize} 0.74 ${GapSize} ${FDR} ${sicerexec} ${pythonExec}
+	python ${pipelineBase}/PythonScripts/AddPeakNames.py ${OutputSicer} ${OutputSicerFull}	
+	</executable>
+    </program>
+
+
+    <outputs>
+        <output name="OutputSicer" required="true" safeNaming="false" description="Wig processes by pipeline" />
+        <output name="OutputSicerFull" required="true" safeNaming="false" description="Wig processes by pipeline" />        
+    </outputs>
+
+    <arguments>
+        <arg name="TestName" required="true" description="Name for Sicer output"/>
+	<arg name="GenomeForSicer" required="true" description="Genome for Sicer output"/>
+	<arg name="shiftSize" required="true" description="The Fragment Length"/>
+	<arg name="TheDirectory" required="true" description="Working Directory"/>
+       <arg name="TestBed" required="true" description="The Bed file." />
+       <arg name="ControlBed" required="true" description="The Bed file." />
+       <arg name="Window" required="true" description="window." />
+       <arg name="GapSize" required="true" description="GapSize." />
+       <arg name="FDR" required="true" description="FDR." />
+       <arg name="BamDirectory" required="true" description="BamDirectory." />	
+       <arg name="sicerexec" required="true" description="sicerexec." />
+       <arg name="pythonlibs" required="true" description="sicerexec." />
+       <arg name="pipelineBase" required="true" description="sicerexec." />
+       <arg name="pythonExec" required="true" description="sicerexec." />
+
+    </arguments>
+
+</task:task>

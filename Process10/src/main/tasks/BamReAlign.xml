@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="ISO-8859-1" ?>
+<task:task xmlns:task="http://cancerresearchuk.org/workflow/task"
+           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+           xsi:schemaLocation="http://cancerresearchuk.org/workflow/task http://uk-cri-lbio01/schema/workflow/task-1.4.xsd">
+
+    <name>BamReAlign</name>
+    <description>Stolen from Rich</description>
+
+    <program type="commandLine">
+        <executable>/cstHome/home/mib-cri/software/bwa/bwa-0.5.9/bwa aln ${saifile} ${genome} ${sequence} 2> ${alnlog}</executable>
+    </program>
+
+    <inputs>
+        <input name="sequence" required="true" description="The sequence to align."/>
+        <input name="genome" required="true" description="Genome data directory."/>
+    </inputs>
+
+    <outputs>
+        <output name="saifile" flag="-f" description="The SAI file produced from the alignment." />
+        <output name="alnlog" description="The logging output from the bwa aln process." />
+    </outputs>
+    
+</task:task>

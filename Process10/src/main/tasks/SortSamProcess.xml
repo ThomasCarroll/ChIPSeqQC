@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="ISO-8859-1" ?>
+<task:task xmlns:task="http://cancerresearchuk.org/workflow/task"
+           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+           xsi:schemaLocation="http://cancerresearchuk.org/workflow/task http://uk-cri-lbio01/schema/workflow/task-1.4.xsd">
+
+
+    <name>SortSamProcess</name>
+    <description>Bam merging for ChIPseqPipeline.</description>
+
+    <program type="commandLine">
+        <executable>
+	${java} -Xmx4g -jar ${picard}/SortSam.jar INPUT=${InputFile} OUTPUT=${SortedFile} SORT_ORDER=coordinate VALIDATION_STRINGENCY=SILENT
+	</executable>
+    </program>
+
+    <inputs>
+        <input name="InputFile"/>
+    </inputs>
+
+    <outputs>
+        <output name="SortedFile" required="true" safeNaming="false" description="sorted file by pipeline" />
+    </outputs>
+
+    <arguments>
+	<arg name="TheDirectory" required="true" description="The working directory"/>
+	<arg name="java" required="true" description="java exec"/>
+	<arg name="picard" required="true" description="picard exec"/>
+    </arguments>
+
+</task:task>

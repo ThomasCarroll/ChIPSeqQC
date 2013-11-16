@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="ISO-8859-1" ?>
+<task:task xmlns:task="http://cancerresearchuk.org/workflow/task"
+           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+           xsi:schemaLocation="http://cancerresearchuk.org/workflow/task http://uk-cri-lbio01/schema/workflow/task-1.4.xsd">
+
+    <name>ReheaderProcess</name>
+    <description>Bam merging for ChIPseqPipeline.</description>
+
+    <program type="commandLine">
+        <executable>
+	 export PYTHONPATH=${pythonlibs}
+	 ${python} ${pipelineBase}/PythonScripts/CRIReheader.py  ${InputFile} ${GenomeBuild} 
+	 ${samtools} reheader ${ReAlignDirectory}/${Name}_Sorted_Temphead.sam ${InputFile} > ${ReAlignDirectory}/${Name}_Rehead.bam
+	</executable>
+    </program>
+
+    <inputs>
+        <input name="InputFile"/>
+    </inputs>
+
+    <outputs>
+        <output name="SortedFile" required="true" safeNaming="false" description="MarkedFile by pipeline" />
+    </outputs>
+
+    <arguments>
+	<arg name="TheDirectory" required="true" description="The working directory"/>
+  		<arg name="Name" required="true" description="Name of reheaded file"/>
+    		<arg name="GenomeBuild" required="true" description="Genome build"/>
+    		<arg name="ReAlignDirectory" required="true" description="Directory for realignment"/>
+    		<arg name="samtools" required="true" description="samtools exec "/>
+    		<arg name="python" required="true" description="python exec"/>
+    		<arg name="pipelineBase" required="true" description="pipelineBase"/>
+    		<arg name="pythonlibs" required="true" description="pipelineBase"/>
+    </arguments>
+
+</task:task>

@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="ISO-8859-1" ?>
+<task:task xmlns:task="http://cancerresearchuk.org/workflow/task"
+           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+           xsi:schemaLocation="http://cancerresearchuk.org/workflow/task http://uk-cri-lbio01/schema/workflow/task-1.4.xsd">
+
+    <name>MakeReportProcess</name>
+    <description>Bam processing for ChIPseqPipeline.</description>
+
+    <program type="commandLine">
+        <executable>
+	export R_LIBS='/home/mib-cri/software/R-2.14.0/library'
+	 echo "Sweave(\"/lustre/mib-cri/carrol09/Work/MyPipe/Process10/RScripts/ChipSeqReport.rnw\")" | /home/mib-cri/software/R-2.14.0/bin/R --vanilla
+	latex  -interaction=batchmode ChipSeqReport.tex
+	pdflatex -interaction=batchmode ChipSeqReport.tex
+	</executable>
+    </program>
+
+    <inputs>
+        <input name="SampleSheet" required="true" description="The Bam file." />
+    </inputs>
+
+    <outputs>
+        <output name="Report" required="true" safeNaming="false" description="Bam processes by pipeline" />
+    </outputs>
+
+    <arguments>
+	<arg name="TheDirectory" required="true" description="Working Directory"/>
+    </arguments>
+
+</task:task>

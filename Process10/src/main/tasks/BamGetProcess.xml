@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="ISO-8859-1" ?>
+<task:task xmlns:task="http://cancerresearchuk.org/workflow/task"
+           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+           xsi:schemaLocation="http://cancerresearchuk.org/workflow/task http://uk-cri-lbio01/schema/workflow/task-1.4.xsd">
+
+    <name>BamGetProcess</name>
+    <description>Bam merging for ChIPseqPipeline.</description>
+
+    <program type="commandLine">
+        <executable>
+	mkdir -p ${TheDirectory}heloo
+	${rsync} -av ${BamToGrab} ${bamDir} --log-file=${bamDir}/${BamName}.log
+	</executable>
+    </program>
+
+    <outputs>
+       <output name="ReceivedBam" required="true" safeNaming="false" description="MergedFile by pipeline" />
+    </outputs>
+
+
+    <arguments>
+	<arg name="TheDirectory" required="true" description="Working directory"/>
+       <arg name="BamToGrab" required="true" description="Location of Bamfile"/>
+       <arg name="BamName" required="true" description="Name of the BAM file"/>
+       <arg name="rsync" required="true" description="rsync command"/>
+       <arg name="bamDir" required="true" description="rsync command"/>
+       
+    </arguments>
+
+</task:task>

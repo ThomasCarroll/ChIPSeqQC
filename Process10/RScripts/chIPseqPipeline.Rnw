@@ -1,0 +1,1048 @@
+\documentclass[12pt,a4paper]{article}
+\usepackage{/home/mib-cri/local/lib64/R/share/texmf/Sweave}
+\usepackage{fullpage}
+\usepackage{hyperref}
+\usepackage{color}
+\usepackage{times}
+\usepackage{ifthen}
+\SweaveOpts{echo=FALSE,results=hide,include=FALSE}
+
+<<setUpTitle>>=
+#Set default graphics options for running on the cluster
+options(bitmapType="cairo")
+start <- Sys.time()
+### Enter your name, e-mail and the project title below, or it will try and guess
+### REMEMBER LaTeX does not like underscores _ in text, so escape then e.g. title="10660902\_FarrinerT\_PL\_GFOL"
+#you can also add a .plan file if your finger file does not have your name in
+title = ""
+name = ""
+email = ""
+## If above are empty it will try and guess
+if (nchar(title)==0){
+title <- basename(getwd())
+title <- gsub("_"," ",title)}
+if (nchar(name)==0){
+name <- system("finger $(whoami) |perl -ne 'print \"$1\n\" if m/Name: (.*)/;'",intern=TRUE)}
+name <- name[length(name)]
+if (nchar(email)==0){
+email <- paste(sub(" ",".",name),"@cancer.org.uk",sep="")}
+@
+
+\begin{document}
+\title{\Sexpr{title}}
+\author{\Sexpr{name}\\
+\small{Cancer Resarch UK - Cambridge Research Institute - Bioinformatics Core}\\
+\texttt{\Sexpr{email}}}
+\date{Report Generated \today}
+\maketitle
+
+\section{Table of Contents}
+\tableofcontents
+
+
+<<setUp>>=
+dir.create("Robjects",showWarnings=F)
+dir.create("images",showWarnings=F)
+dir.create("tables",showWarnings=F)
+temp_dir <- as.vector(Sys.getenv(x="TEMP"))
+@
+
+
+<<loadLibraries>>=
+###Load in required Libraries
+library(xtable)
+library(RColorBrewer)
+library(multicore)
+library(Rlsf)
+library(ggplot2)
+library(Vennerable)
+@
+
+% Note - Must source functions after library call to Rlsf ensure our custom version overwrites Rlsf version
+
+<<loadInFunctions>>= 
+source("chIPseqPipelineFunctions.R")
+@
+
+<<readConfigFile>>=
+config <- data.frame(t(read.table("chIPseqPipelineConfig.txt",comment.char="#",row.names=1)),stringsAsFactors=F)
+@
+
+<<setLSFOptions>>=
+###Set the default options for LSF
+memMb <- as.numeric(config$memoryLimitKb)/1024
+memGb <- as.numeric(memMb)/1024
+ctrl <- lsf.ctrl(queue=config$defaultQueue,savelist=c("config","sampleSheet","rmExt","memGb","BAMstats","lsf.submit2","is.empty"),resReq=paste("rusage[mem=",memMb,"]",sep=""),rlimit_rss=as.numeric(config[,"memoryLimitKb"]),outFile=paste(basename(getwd()),".log",sep=""))
+@
+
+<<thirdPartyVersions>>=
+### TODO  - Format this as a nice table at the end of the pipeline, in with sessionInfo
+macsVersion <- system(paste(config$macs,"--version"),intern=T)
+swemblVesion <- system(paste(config$swembl,"-version"),intern=T)
+fp4Version <- system(paste("echo \"findPeaks \" $(java -jar ",config$fp4,"|head -n 1 |perl -ane 'print \"$F[6]\n\"')"),intern=T)
+bedtoolsVersion <- system(paste("readlink",config$intersectBed,"|perl -ne 'm/Version-(\\d+\\.\\d+\\.\\d+)/;print \"BEDtools $1\"'"),intern=T)
+picardVersion <-  system(paste("echo \"PICARD\" $(java -jar",config$mergeSam,"2>&1 |grep Version)"),intern=T)
+samtoolsVersion <-  system(paste("echo \"samtools\" $(samtools 2>&1 |grep Version)"),intern=T)
+pipelineVersion <- system(paste("svn info /home/mib-cri/svn_checkouts/chIPseqPipeline/ |grep Revision"),intern=T)
+versionTable <- data.frame(macs=macsVersion,SWEMBL=swemblVesion,findPeaks=fp4Version,BEDtools=bedtoolsVersion,PICARD=picardVersion,SAMTOOLS=samtoolsVersion,pipeline=pipelineVersion)
+@ 
+
+
+\section{Introduction}
+
+\section{Sample Information}
+<<readLIMMSInfo>>=
+if (file.exists("limmsInfo.txt")){
+	limms <- read.table("limmsInfo.txt",header=F,sep="\t",stringsAsFactors=F)
+	colnames(limms) <- c("GenomicsID","SampleID","Run","Lane","Location")
+} else {
+	cat("limmsInfo.txt not found\n")
+	q(status=1)
+}
+@
+
+<<setUp>>=
+bamDir = "bamFiles/"
+sSheet <- paste(getwd(),"/","sampleSheet.csv",sep="")
+@
+
+<<checkForNewLanes>>=
+  newLanes = FALSE
+if (file.exists("limmsInfoPrevious.txt"))  newLanes = TRUE 
+
+if (newLanes){
+  if (file.exists(sSheet)){
+    cat("NEW LANES FOUND - ADDING TO PROJECT\n")
+    old.sSheet <- paste("sampleSheet_",format(Sys.time(), "%Y%m%d_%H.%M"),".csv",sep="")
+    file.rename(sSheet,old.sSheet)
+    if (file.exists(old.sSheet)){
+      old.sampleSheet <- read.table(old.sSheet,header=T,stringsAsFactors=F,sep=",")
+    }
+  } else {
+# If there isn't a sampleSheet then there is nothing to merge
+    newLanes = FALSE
+  }
+}
+@ 
+
+<<loadSampleSheet>>=
+#If there is no sampleSheet we will make one with the required columns filled in with NAs.
+if (file.exists(sSheet)){
+  sampleSheet <- read.table(sSheet,header=T,stringsAsFactors=F,sep=",")
+
+  # This is just a line to catch things following the addition of a new column to the sampleSheet
+  if (is.null(sampleSheet$macsMfold)) sampleSheet$macsMfold <- as.numeric(config$mfold)
+  if (is.null(sampleSheet$macsSsize)) sampleSheet$macsSsize <- NA
+  writeSsheet()
+
+} else {
+  sampleSheet <- limms
+  sampleSheet$Tissue <- NA
+  sampleSheet$Factor <- NA
+  sampleSheet$Antibody <- NA
+  sampleSheet$Condition <- NA
+  sampleSheet$Replicate <- NA
+  sampleSheet$InputToUse <- NA
+  sampleSheet$toMerge <- NA
+  sampleSheet$bamFileName <- paste(bamDir,sapply(sampleSheet$GenomicsID,function(x) list.files(pattern=paste("^",x,sep=""),path=bamDir)[1]),sep="")
+  sampleSheet$bamFileNameFiltered <- NA
+  sampleSheet$Original <- NA
+  sampleSheet$delRand <- NA
+  sampleSheet$Excluded <- NA
+  sampleSheet$Filtered <- NA
+  sampleSheet$Unique <- NA
+  sampleSheet$treatToInputRatioFilt <- NA
+  sampleSheet$DuplicationRate <- NA
+  sampleSheet$InputFileNameToUse <- NA
+  sampleSheet$derivedFrom <- NA
+  sampleSheet$macsMfold <- as.numeric(config$mfold)
+  sampleSheet$macsSsize <- NA 
+  sampleSheet$macsPeaks <- NA
+  sampleSheet$swemblPeaks <- NA
+  sampleSheet$fp4Peaks <- NA
+  sampleSheet$sharedPeaks <- NA
+  sampleSheet$macs_name <- NA
+  sampleSheet$sw_name <- NA
+  sampleSheet$fp4_name <- NA
+  sampleSheet$sharedName <- NA
+  sampleSheet$percentMacs <- NA
+  sampleSheet$percentSwembl <- NA
+  sampleSheet$wiggleFile <- NA
+  writeSsheet()
+  cat("sampleSheet not found - Made a dummy version please fill it in\n")
+}
+@
+
+<<addNewLanes>>=
+### Start of new code to add new lanes that have come off the sequencer
+  if (newLanes){
+    newCols <- colnames(sampleSheet)[!colnames(sampleSheet) %in% colnames(old.sampleSheet)]
+    if (length(newCols)) old.sampleSheet[,newCols] <- NA
+    old.sampleSheet <- old.sampleSheet[,match(colnames(sampleSheet),colnames(old.sampleSheet))]
+    sampleSheet <- rbind(old.sampleSheet,sampleSheet[!sampleSheet$GenomicsID %in% old.sampleSheet$GenomicsID,])
+    writeSsheet()
+    ### Remove this file do we do not try and merge again, it wouldn't matter, but it is quicker not to
+    unlink("limmsInfoPrevious.txt")
+  }
+@
+
+
+This experiment consists of \Sexpr{length(unique(sampleSheet$fileName))} samples, in \Sexpr{length(unique(sampleSheet$Condition))} groups. 
+ 
+\section{Processing}
+\subsection{FSU - Filter, Sort and Unique}
+
+
+
+<<firstStats>>=
+  toDo <- is.na(sampleSheet$Original)
+if (any(toDo)){
+  jobs <- lapply(sampleSheet$bamFileName[toDo],function(x) lsf.submit2(BAMstats,x,ctrl=ctrl))
+  results <- jobMonitor(jobs,verbose=F)
+  sampleSheet$Original[toDo] <- sapply(results,"[",1)
+  writeSsheet()
+}
+@ 
+
+<<doDelRand>>=
+###Delete the chrX_random lines from the original bam files. Done inline.
+  if (as.logical(config$doDelRand) == TRUE){
+### checks BAM headers to see if we need to remove any rand regions
+    toDo <- BAMhasRand(sampleSheet$bamFileName)
+    if (any(toDo)){
+      jobs <- lapply(sampleSheet$bamFileName[toDo],function(x) lsf.submit2(BAMdelRandChr,bamFile=x,ctrl=ctrl))
+      jobMonitor(jobs,verbose=F)
+      jobs <- lapply(sampleSheet$bamFileName[toDo],function(x) lsf.submit2(BAMstats,x,ctrl=ctrl))
+      results <- jobMonitor(jobs,verbose=F)
+      sampleSheet$delRand[toDo] <- sapply(results,"[",1)
+    } else {
+      toDo <-is.na(sampleSheet$delRand)
+      sampleSheet$delRand[toDo] <- sampleSheet$Original[toDo]
+    }
+  }
+writeSsheet()
+@ 
+
+
+<<excludeRegions>>=
+  ### Generate the column in the spreadsheet if it does not already exist
+  if (is.null(sampleSheet$Excluded)){
+    sampleSheet$Excluded <- NA
+  }
+if (config$excludeBlkLst == "TRUE"){
+### Check if the file name contains exclude, if it does assume it has already had excluded reads removed
+  toDo <- !grepl("exclude",sampleSheet$bamFileName)
+  if (any(toDo)){
+    jobs <- lapply(sampleSheet$bamFileName[toDo],function(x) lsf.submit2(BAMexcludeRegions,x,config$BlkLst,ctrl=ctrl))
+    sampleSheet$bamFileName[toDo] <- unlist(jobMonitor(jobs,verbose=F))
+  }
+### Check if we have read counts for the file
+  toDo <- is.na(sampleSheet$Excluded)
+  if (any(toDo)){
+    jobs <- lapply(sampleSheet$bamFileName[toDo],function(x) lsf.submit2(BAMstats,x,ctrl=ctrl))
+    results <- jobMonitor(jobs,verbose=F)
+    sampleSheet$Excluded[toDo] <- sapply(results,"[",1)
+  }
+}  
+writeSsheet()
+@ 
+ 
+<<addFiltNames>>=
+### Add in the file filtered file name, is it is not there, to avoid human error
+whichNA <- is.na(sampleSheet$bamFileNameFiltered)
+sampleSheet$bamFileNameFiltered[whichNA] <- paste(rmExt(sampleSheet$bamFileName[whichNA]),"_f.bam",sep="")
+@
+
+<<filterBAM>>=
+### check if the file already exists
+  toDo <- !file.exists(sampleSheet$bamFileNameFiltered)
+if (any(toDo)){
+### Filter to BAM on mapping quality
+  jobs <- lapply(sampleSheet$bamFileName[toDo],function(x) lsf.submit2(BAMfilter,bamFile=x,ctrl=ctrl))
+### just to make sure we add the output file in here from the function BAMfilter
+  sampleSheet$bamFileNameFiltered[toDo] <- unlist(jobMonitor(jobs,verbose=F))
+}
+writeSsheet()
+@ 
+
+<<removeDups>>=
+### REMOVE DUPS - uses samtools
+  if (config$removeDups == "TRUE"){
+### Remove any duplicates, to a new file and change the sample sheet to point at these new files
+    toDo <- !grepl("_fu.bam",sampleSheet$bamFileNameFiltered)
+    if (any(toDo)){
+      jobs <- lapply(sampleSheet$bamFileNameFiltered[toDo],function(x) lsf.submit2(BAMremoveDups,bamFile=x,ctrl=ctrl))
+### store the old file names here before updating to the new ones, so we can delete them later if we want to
+      toUnlink <- sampleSheet$bamFileNameFiltered[toDo]
+      sampleSheet$bamFileNameFiltered[toDo] <- unlist(jobMonitor(jobs,verbose=F))
+      if (config$delFilts == "TRUE"){
+### Optionally delete the filtered version, can be re created from the origial ones
+        unlink(toUnlink)
+      }
+      writeSsheet()
+    }
+  }
+@
+
+
+<<countAfterFilterandRmDup>>=
+toDo <- is.na(sampleSheet$Filtered)
+if (any(toDo)){
+  jobs <- lapply(sampleSheet$bamFileNameFiltered[toDo],function(x) lsf.submit2(BAMstats,x,ctrl=ctrl))
+  results <- jobMonitor(jobs,verbose=F)
+  sampleSheet$Filtered[toDo] <- sapply(results,"[",1)
+  sampleSheet$Unique[toDo] <- sapply(results,"[",4)
+  sampleSheet$DuplicationRate[toDo] <- sapply(results,"[",5)
+  writeSsheet()
+}
+@ 
+
+<<mergeInputs>>=
+### This section should merge any bam files that have the same tag in the toMerge column of the sampleSheet
+### It will then check if the output file name is empty or doesn't exist
+###Merge inputs as dictated by sampleSheet
+mergeTags <- unique(sampleSheet$toMerge[nchar(sampleSheet$toMerge)!=0])
+mergeTags <- mergeTags[!is.na(mergeTags)]
+mergeJobs <- NULL
+if (length(mergeTags)){
+  for (tag in mergeTags){
+    if (is.na(match(tag,sampleSheet$GenomicsID))){
+      cat(tag,"\n")
+#    toMerge <- match(tag,sampleSheet$toMerge)
+    toMerge <- which(regexpr(paste(tag,"$",sep=""),sampleSheet$toMerge,perl=T)==1)
+    cat(toMerge,"\n")
+      ending <- "_f.bam"
+      if (config$removeDups == "TRUE") {ending <- "_fu.bam"}
+      outFile <- paste(dirname(as.character(sampleSheet$bamFileNameFiltered[toMerge][1])),"/",tag,ending,sep="")
+    cat(outFile,"\n")
+### Remake the file if it is empty
+    if (is.empty(outFile)){
+      cat("Submitting Job","\n")
+      mergeJobs <- c(mergeJobs,lapply(outFile,function(x) lsf.submit2(BAMmerge,sampleSheet$bamFileNameFiltered[toMerge],x,ctrl=ctrl)))
+    }
+### Add the line to the sampleSheet if it is not there
+#    if (is.na(match(tag,sampleSheet$GenomicsID))){
+      cat("Appending to sampleSheet\n")
+      row <- nrow(sampleSheet)+1    
+      sampleSheet[row,"GenomicsID"] <- tag
+      sampleSheet[row,"SampleID"] <- tag
+      sampleSheet[row,"derivedFrom"] <- capture.output(cat(sampleSheet[toMerge,"GenomicsID"],sep=":"))
+      sampleSheet[row,"bamFileName"] <- outFile     
+      sampleSheet[row,"bamFileNameFiltered"] <- outFile
+      sampleSheet[row,"Condition"] <- capture.output(cat(unique(sampleSheet[toMerge,"Condition"]),sep=":"))
+      sampleSheet[row,"Tissue"] <- capture.output(cat(unique(sampleSheet[toMerge,"Tissue"]),sep=":"))
+      sampleSheet[row,"Factor"] <- capture.output(cat(unique(sampleSheet[toMerge,"Factor"]),sep=":"))
+      sampleSheet[row,"Antibody"] <- capture.output(cat(unique(sampleSheet[toMerge,"Antibody"]),sep=":"))
+      sampleSheet[row,"Replicate"] <- capture.output(cat(unique(sampleSheet[toMerge,"Replicate"]),sep=":"))
+      sampleSheet[row,"delRand"] <- sum(as.numeric(sampleSheet[toMerge,"delRand"]))
+      sampleSheet[row,"Original"] <- sum(as.numeric(sampleSheet[toMerge,"Original"]))
+      sampleSheet[row,"Filtered"] <- sum(as.numeric(sampleSheet[toMerge,"Filtered"]))
+      sampleSheet[row,"Excluded"] <- sum(as.numeric(sampleSheet[toMerge,"Excluded"]))
+      sampleSheet[row,"Unique"] <- NA 
+    }
+  }
+  if (!is.null(mergeJobs)){
+    jobMonitor(mergeJobs,verbose=F)
+  }
+  writeSsheet()
+}
+
+@ 
+
+<<countAfterMerge>>=
+toDo <- is.na(sampleSheet$Unique)
+if (any(toDo)){
+  jobs <- lapply(sampleSheet$bamFileNameFiltered[toDo],function(x) lsf.submit2(BAMstats,x,ctrl=ctrl))
+  results <- jobMonitor(jobs,verbose=F)
+  sampleSheet$Filtered[toDo] <- sapply(results,"[",1)
+  sampleSheet$Unique[toDo] <- sapply(results,"[",4)
+  sampleSheet$DuplicationRate[toDo] <- sapply(results,"[",5)
+  writeSsheet()
+}
+
+<<makeCountTable>>=
+### Retrieve line counts 
+filtScores <- data.frame(ID=sampleSheet$GenomicsID,Name=sampleSheet$SampleID,Original=sampleSheet$Original,deleteRand=sampleSheet$delRand,Filtered=sampleSheet$Filtered,Unique=sampleSheet$Unique,DupRate=sampleSheet$DuplicationRate)[is.na(sampleSheet$derivedFrom),]
+filtCopy <- filtScores
+filtCopy$Original <- sprintf("%.1fM",filtCopy$Original/1E6)
+filtCopy$deleteRand <- sprintf("%.1fM",filtCopy$deleteRand/1E6)
+filtCopy$Filtered <- sprintf("%.1fM",filtCopy$Filtered/1E6)
+filtCopy$Unique <- sprintf("%.1fM",filtCopy$Unique/1E6)
+
+@
+
+In order to have a first look at the data, wiggle files are avilable in the wigs directory. These can be loaded in to IGB, IGV or UCSC. Each sample is split in to several smaller wig files to allow for easier uploaded. 
+
+<<makeWiggles>>=
+  wigDir="wigs/"
+dir.create(wigDir,showWarnings=F)
+sampleSheet$wiggleFile <- paste(wigDir,rmExt(basename(sampleSheet$bamFileNameFiltered)),".wig",sep="")
+WigtoDo <- is.empty(sampleSheet$wiggleFile)
+outFiles <- sampleSheet$wiggleFile[WigtoDo]
+if (any(WigtoDo)){
+  inFiles <- sampleSheet$bamFileNameFiltered[WigtoDo]
+  wigName <- paste(sampleSheet$GenomicsID[WigtoDo],sampleSheet$SampleID[WigtoDo],sep="_")
+  WigJobs <- lapply(1:length(inFiles),function(x) lsf.submit2(BAMtoWIG,bam=inFiles[x],wig=outFiles[x],name=wigName[x],ctrl=ctrl))
+### Leave these jobs running until later, collect, then make image
+}
+writeSsheet()
+@ 
+
+
+<<showTable,results=tex>>==
+  xtable(format(filtCopy,big.mark=","),caption="Number of Reads",lab="tab:numReads",digits=0)
+@
+
+<<numReadsFigs>>=
+filtScores$DupRate <- NULL
+m <- melt(filtScores)
+p <- ggplot(m,aes(x=paste(Name,ID),y=value)) + geom_bar(aes(fill=factor(variable)),position="dodge") + coord_flip()
+make_png("numReadsFSU",width=750,height=750)
+show(p)
+dev.off()
+@
+
+\begin{figure}[htbp]
+\begin{center}
+\includegraphics[]{images/numReadsFSU.png}
+\caption{Number of Reads}
+\label{fig:numReads}
+\end{center}
+\end{figure}
+
+
+Table~\ref{tab:numReads} shows the number of read in the original file, after filtering out reads with a score less than \Sexpr{as.numeric(config$filtBedCutoff)} and after removing non-unique reads, this is also shown in Figure~\ref{fig:numReads}.
+
+\subsection{Sampling Input}
+Many peak callers assume that the Treatment and Input have similar numbers of read. This is not always the case, so we downsample the Input file to roughly match the size of each Treatment. We do not however, down sample the treatment to match the input, should there be more treatment reads, as we do not want to discard good data. 
+
+<<QuitHereIfNoInputsSpecified>>=
+if (all(is.na(sampleSheet$InputToUse))) {
+  cat("NO INPUTS SPECIFIED - NOTHING MORE TO DO HERE\n")
+  quit("no",0)
+}
+@ 
+
+
+<<downSampling>>=
+if (any(!is.na(sampleSheet$InputToUse))){
+  ###As a default add the location of the input, before downsampling 
+  sampleSheet$InputFileNameToUse <- sampleSheet$bamFileNameFiltered[match(sampleSheet$InputToUse,sampleSheet$GenomicsID)]
+  sampleSheet$treatToInputRatioFilt <- as.numeric(sampleSheet$Filtered)/as.numeric(sampleSheet$Filtered[match(sampleSheet$InputToUse,sampleSheet$GenomicsID)])
+  writeSsheet()
+  TreatToHaveInputDownSampled <- which(sampleSheet$treatToInputRatioFilt<as.numeric(config$downSampleRatio))
+  if (sum(TreatToHaveInputDownSampled)){
+    inputsToBeDownSampled <- match(sampleSheet[TreatToHaveInputDownSampled,"InputToUse"],sampleSheet$GenomicsID)
+    inFileName <- sampleSheet$bamFileNameFiltered[inputsToBeDownSampled]
+    ending <- "_f.bam"
+    if (config$removeDups == "TRUE") {ending <- "_fu.bam"}    
+    outFileName <- paste(rmExt(inFileName),"_",sampleSheet$GenomicsID[TreatToHaveInputDownSampled],ending,sep="")
+    sampleSheet[TreatToHaveInputDownSampled,"InputFileNameToUse"] <- outFileName
+
+###Remove those that already exist
+    inFileName  <- inFileName[!file.exists(outFileName)]
+    outFileName <- outFileName[!file.exists(outFileName)]
+    TreatToHaveInputDownSampled <- TreatToHaveInputDownSampled[!file.exists(outFileName)]
+    if(sum(TreatToHaveInputDownSampled)){
+      cat("Downsampling\n")
+      jobs <- lapply(1:length(TreatToHaveInputDownSampled),function(x) lsf.submit2(BAMdownSample,inFile=inFileName[x],outFile=outFileName[x],ratio=sampleSheet$treatToInputRatioFilt[TreatToHaveInputDownSampled[x]],ctrl=ctrl))
+      jobMonitor(jobs,verbose=F)    
+    }
+  }
+}
+writeSsheet()
+@
+
+\section{Peak Calling}
+
+The two peaks callers, MACS (http://liulab.dfci.harvard.edu/MACS/) and SWEMBL (http://www.ebi.ac.uk/~swilder/SWEMBL/) were used to determine bound regions. MACS was run with an mfold value of \Sexpr{as.numeric(config$mfold)}, and SWEMBL was run with a threshold of \Sexpr{as.numeric(config$swembl_thresh)} and a fragment length of \Sexpr{as.numeric(config$swembl_fragLen)}. 
+
+<<callPeaks>>=
+macsPeaksDir <- "peaks/MACS/"
+swemblPeaksDir <- "peaks/SWEMBL/"
+fp4PeaksDir <- "peaks/FP4/" 
+hiconfPeaksDir <- "peaks/hiConf/"
+
+dir.create(macsPeaksDir,recursive=T,showWarnings=F)
+dir.create(swemblPeaksDir,recursive=T,showWarnings=F)
+dir.create(fp4PeaksDir,recursive=T,showWarnings=F)
+dir.create(hiconfPeaksDir,recursive=T,showWarnings=F)
+
+#Set output names
+names <- paste(sampleSheet$GenomicsID,"_",sampleSheet$InputToUse,sep="")
+macs_name <- paste(macsPeaksDir,names,sep="")
+sw_name <- paste(swemblPeaksDir,names,"_sw.peaks",sep="")
+fp4_name <- names
+
+treatment <- sampleSheet$bamFileNameFiltered
+control <- sampleSheet$InputFileNameToUse
+
+### HardCoded option to not run FindPeaks
+runFP4flag <- "FALSE"
+
+### Only call peaks on the those sample that have a defined input and have an NA number of peaks, not a zero number
+macsToCall <- which(is.na(sampleSheet$macsPeaks) & !is.na(sampleSheet$InputToUse))
+swToCall <- which(is.na(sampleSheet$swemblPeaks) & !is.na(sampleSheet$InputToUse))
+fp4ToCall <- which(is.na(sampleSheet$fp4Peaks) & !is.na(sampleSheet$InputToUse))
+
+
+### SUBMIT THE PEAK CALLERS
+if (sum(macsToCall)){
+  macsJobs <- lapply(macsToCall,function(x) lsf.submit2(runMacs,treatment=treatment[x],control=control[x],name=macs_name[x],mfold=sampleSheet$macsMfold[x],shiftSize=sampleSheet$macsSsize[x],ctrl=ctrl))
+}
+
+if (sum(swToCall)){
+  swJobs <- lapply(swToCall,function(x) lsf.submit2(runSwembl,treatment=treatment[x],control=control[x],name=sw_name[x],ctrl=ctrl))
+}
+
+if (runFP4flag=="TRUE"){
+  if (sum(fp4ToCall)){
+    fp4Jobs <- lapply(fp4ToCall,function(x) lsf.submit2(runFP4,treatment=treatment[x],control=control[x],name=fp4_name[x],outDir=fp4PeaksDir,ctrl=ctrl))
+  }
+}
+
+### Wait for all of the peak callers to finish
+if (sum(macsToCall)) jobMonitor(macsJobs,verbose=F)
+if (sum(swToCall)) jobMonitor(swJobs,verbose=F)
+if (runFP4flag=="TRUE") {
+  if (sum(fp4ToCall))  jobMonitor(fp4Jobs,verbose=F)
+}
+
+### Parse the FindPeaks output into a bed file, and store the location of the bedFile  
+if (runFP4flag=="TRUE"){
+### Pasre the output of findPeaks, using the default cutoff (in the config) and cleanup extra files
+  if (is.null(config$fp4_pval)) stop("YOUR CONFIG FILE IS OUT OF DATE, GET A NEW ONE\n")
+  sampleSheet$fp4_name[fp4ToCall] <- sapply(fp4_name[fp4ToCall],parseFP4)
+  lapply(sampleSheet$fp4_name[fp4ToCall],fixBadBed)    
+}
+
+### Add the correct names to the sampleSheet for macs and clean up the beds
+sampleSheet$macs_name[macsToCall] <- paste(macs_name[macsToCall],"_peaks.bed",sep="")
+sampleSheet$sw_name[swToCall] <- sw_name[swToCall]
+lapply(sampleSheet$macs_name[macsToCall],fixBadBed)
+lapply(sampleSheet$sw_name[swToCall],fixBadBed)
+writeSsheet()
+@
+
+<<ConvertSw2Bed>>==
+#Convert the swembl .peaks to .bed files only if the .bed doesn't exist
+toDo <- which(sapply(strsplit(basename(sampleSheet$sw_name),"sw\\."),"[",2)=="peaks")
+
+if (any(toDo)){
+  jobs <- lapply(sampleSheet$sw_name[toDo],function(x) lsf.submit2(sw2bed,x,ctrl=ctrl))
+  results <- jobMonitor(jobs,verbose=F)
+  sampleSheet$sw_name[toDo] <- unlist(results)
+  writeSsheet()
+}
+@ 
+
+<<countPeaks>>=
+macsToCall <- which(is.na(sampleSheet$macsPeaks) & !is.na(sampleSheet$InputToUse))
+swToCall <- which(is.na(sampleSheet$swemblPeaks) & !is.na(sampleSheet$InputToUse))
+fp4ToCall <- which(is.na(sampleSheet$fp4Peaks) & !is.na(sampleSheet$InputToUse))
+
+if (sum(macsToCall)){
+  jobs <- lapply(sampleSheet$macs_name[macsToCall],function(x) lsf.submit2(countBed,x,ctrl=ctrl))
+  sampleSheet$macsPeaks[macsToCall] <- as.numeric(unlist(jobMonitor(jobs,verbose=F)))
+}
+if (sum(swToCall)){
+  jobs <- lapply(sampleSheet$sw_name[swToCall],function(x) lsf.submit2(countBed,x,ctrl=ctrl))
+  sampleSheet$swemblPeaks[swToCall] <- as.numeric(unlist(jobMonitor(jobs,verbose=F)))
+}
+if (runFP4flag=="TRUE"){   
+  if (sum(fp4ToCall)){
+    jobs <- lapply(sampleSheet$fp4_name[fp4ToCall],function(x) lsf.submit2(countBed,x,ctrl=ctrl))
+    sampleSheet$fp4Peaks[fp4ToCall] <- as.numeric(unlist(jobMonitor(jobs,verbose=F)))
+  }
+}
+writeSsheet()
+@ 
+
+<<makeMACSModelImages>>=
+lapply(paste(macsPeaksDir,list.files(path=macsPeaksDir,pattern="_model.r"),sep=""),source)
+@ 
+
+
+<<intersectBed>>=
+###Calculate the number if shared peaks between those that had some peaks called by both
+toIntersect <- which(rowSums(cbind(sampleSheet$macsPeaks,sampleSheet$swemblPeaks)>0,na.rm=T)>=2)
+
+#Only intersect those that have not already been intersected
+toIntersect <- toIntersect[is.na(sampleSheet$sharedPeaks[toIntersect])]
+
+if (sum(toIntersect)){
+#peaks <- list(macs=sampleSheet$macs_name[toIntersect],swembl=sampleSheet$sw_name[toIntersect],fp4=sampleSheet$fp4_name[toIntersect])
+#results <- sapply(1:length(toIntersect),function(x) apply(combn(sapply(peaks,"[",x),2),2,function(y) intersectBed(y[1],y[2])))
+#colnames(results) <- names
+#row.names(results) <-apply(combn(c("MACS","SWEMBL","FP4"),2),2,function(x) paste(x[1],x[2],sep="-"))
+
+jobs <- lapply(toIntersect,function(x) lsf.submit2(intersectBed,bedA=sampleSheet$macs_name[x],bedB=sampleSheet$sw_name[x],ctrl=ctrl))
+intersectResults <- jobMonitor(jobs,verbose=F)
+sampleSheet$sharedPeaks[toIntersect] <- as.numeric(sapply(intersectResults,"[",4))
+
+vennResults <- matrix(rep(NA,nrow(sampleSheet)*4),nrow=nrow(sampleSheet))
+vennResults[toIntersect,] <- t(sapply(intersectResults,"["))
+### Venn Diagrams
+vennDir <- "peaks/Venns/"
+dir.create(vennDir,showWarnings=F)
+deliverableName <- paste(vennDir,sampleSheet$GenomicsID,"_",sampleSheet$SampleID,"_",sampleSheet$Factor,"_",sampleSheet$Condition,"_",sampleSheet$Replicate,"_macs_swembl_venn.png",sep="")
+if (sum(toIntersect)){
+  sapply(toIntersect,function(x) {png(deliverableName[x]);plot(Venn(SetNames=c("MACS","SWEMBL"),Weight=as.numeric(vennResults[x,])));dev.off()})
+}
+
+sampleSheet$sharedName[toIntersect] <- paste(rmExt(sampleSheet$macs_name[toIntersect]),"_hiConf.bed",sep="")
+sampleSheet$sharedName <- sub(pattern=macsPeaksDir,replacement=hiconfPeaksDir,sampleSheet$sharedName)
+
+#Don't need to wait for this  to finish
+lapply(toIntersect,function(x) lsf.submit2(saveSharedPeaks,bedA=sampleSheet$macs_name[x],bedB=sampleSheet$sw_name[x],outFile=sampleSheet$sharedName[x],ctrl=ctrl))
+
+jobs <- lapply(toIntersect,function(x) lsf.submit2(intersectBed,bedA=sampleSheet$macs_name[x],bedB=sampleSheet$sw_name[x],ctrl=ctrl))
+sampleSheet$percentMacs[toIntersect] <- round((as.numeric(unlist(sapply(jobMonitor(jobs,verbose=F),"[",4)))/sampleSheet$macsPeaks[toIntersect])*100,2)
+
+jobs <- lapply(toIntersect,function(x) lsf.submit2(intersectBed,bedA=sampleSheet$sw_name[x],bedB=sampleSheet$macs_name[x],ctrl=ctrl))
+sampleSheet$percentSwembl[toIntersect] <- round((as.numeric(unlist(sapply(jobMonitor(jobs,verbose=F),"[",4)))/sampleSheet$swemblPeaks[toIntersect])*100,2)
+
+sampleSheet$sharedPeaks[is.na(sampleSheet$sharedPeaks)] <- 0
+} 
+writeSsheet()
+@ 
+
+
+<<makePeaksDeliverable>>=
+delivPeaksDirs = "peaks/"
+dir.create(delivPeaksDirs,showWarnings=F)
+deliverableName <- paste(sampleSheet$SampleID,sampleSheet$Factor,sampleSheet$Condition,sampleSheet$Replicate,sep="_")
+
+### MACS PEAKS
+whichMacs <- which(!is.empty(sampleSheet$macs_name))
+if (sum(whichMacs)){
+  macs_inFiles <- sampleSheet$macs_name[whichMacs]
+  macs_outFiles <- paste(delivPeaksDirs,deliverableName[whichMacs],"_macs.bed",sep="")
+  lapply(1:length(macs_inFiles),function(x) file.copy(macs_inFiles[x],macs_outFiles[x]))
+}
+### SWEMBL PEAKS
+whichSwembl <- which(!is.empty(sampleSheet$sw_name))
+if (sum(whichSwembl)){
+  sw_inFiles <- sampleSheet$sw_name[whichSwembl]
+  sw_outFiles <- paste(delivPeaksDirs,deliverableName[whichSwembl],"_swembl.bed",sep="")
+  lapply(1:length(sw_inFiles),function(x) file.copy(sw_inFiles[x],sw_outFiles[x]))
+}
+### hiConf Peaks
+whichShared <- which(!is.empty(sampleSheet$sharedName))
+if (sum(whichShared)){
+  hc_inFiles <- sampleSheet$sharedName[whichShared]
+  hc_outFiles <- paste(delivPeaksDirs,deliverableName[whichShared],"_hiConf.bed",sep="")
+  lapply(1:length(hc_inFiles),function(x) file.copy(hc_inFiles[x],hc_outFiles[x]))
+}
+@
+
+Peaks that were called by both MACS and SWEMBL are called high confidence peaks, and are saved
+
+<<peakCallingTable,results=tex>>=
+toCall <- !is.na(sampleSheet$InputToUse)
+peaksTable <- cbind(GenomicsID=sampleSheet$GenomicsID[toCall],ID=sampleSheet$SampleID[toCall],Factor=sampleSheet$Factor[toCall],Condition=sampleSheet$Condition[toCall],Replicate=sampleSheet$Replicate[toCall],MACS=sampleSheet$macsPeaks[toCall],SWEMBL=sampleSheet$swemblPeaks[toCall])
+xtable(peaksTable,caption="Summary of peak calling",label="fig:peakSum")                 
+@ 
+
+<<replicateCorrelation,eval=T>>=
+  if (is.empty("images/replicateVenns.pdf")){
+    library(ChIPpeakAnno)
+    code <- factor(apply(sampleSheet[,c("Tissue","Factor","Antibody","Condition")],1,function(x) capture.output(cat(x,sep="-"))))
+                                        #Check if there are at least one group with some replicates
+    pdf("images/replicateVenns.pdf")
+    if (max(table(code))>1){
+      for (l in levels(code)){
+        reps <- which(code==l)
+        reps <- reps[!is.empty(sampleSheet$macs_name[reps])]
+        if (length(reps)>1 & length(reps)<=3){
+          files <- sampleSheet$macs_name[reps]     
+          makeVennDiagram(lapply(files,function(x) BED2RangedData(readBED(x))),NameOfPeaks=sampleSheet$SampleID[reps],totalTest=sum(sampleSheet$macsPeaks[reps]),);
+          title(main=levels(code)[l])
+        }
+      }
+    }
+    dev.off()
+  }
+@
+
+<<commonPeaks,eval=T>>=
+### generate a quick table showing the number of common peaks for each group of peaks
+  code <- factor(apply(sampleSheet[,c("Tissue","Factor","Antibody","Condition")],1,function(x) capture.output(cat(x,sep="-"))))
+ovrTable <- matrix(nrow=length(levels(code)),ncol=4,dimnames=list(levels(code),c("Common","Total","JustOne","JustTwo")))
+if (max(table(code))>1){
+  for (l in levels(code)){
+    reps <- which(code==l)
+    reps <- reps[!is.empty(sampleSheet$macs_name[reps])]
+    if (length(reps)>1){
+      tempFile <- tempfile()
+      tempFile2 <- tempfile()
+      files <- sampleSheet$macs_name[reps]
+### combine the peaks into one file
+      system(paste("cat",capture.output(cat(files)),">",tempFile))
+### merge them
+      system(paste("mergeBed -i",tempFile,">",tempFile2))
+### count the overlaps
+      commonPeaks <- as.numeric(system(paste("coverageBed -a",tempFile,"-b",tempFile2,"|cut -f 4 | grep",length(reps),"|wc -l"),intern=T))
+      justOne <- as.numeric(system(paste("coverageBed -a",tempFile,"-b",tempFile2,"|cut -f 4 | grep","1","|wc -l"),intern=T))
+      justTwo <- as.numeric(system(paste("coverageBed -a",tempFile,"-b",tempFile2,"|cut -f 4 | grep","2","|wc -l"),intern=T))
+      allPeaks <- as.numeric(system(paste("wc -l <",tempFile2),intern=T))
+      ovrTable[match(l,levels(code)),] <- c(commonPeaks,allPeaks,justOne,justTwo)
+      unlink(c(tempFile,tempFile2))
+    }
+  }
+}
+ovrTable <- ovrTable[rowSums(t(apply(ovrTable,1,is.na)))!=4,]
+@  
+
+<<commonPeaksTable,results=tex,eval=T>>=
+xtable(ovrTable,digits=0,caption="Summary of common peaks",label="fig:peakOvr")
+
+@ 
+
+<<peakWidthPloats>>=
+toCall <- which(!is.na(sampleSheet$InputToUse))
+
+macs_lengths <- sapply(toCall,function(x) readBedandReturnLength(sampleSheet$macs_name[x]))
+sw_lengths <- sapply(toCall,function(x) readBedandReturnLength(sampleSheet$sw_name[x]))
+###fp4_lengths <- sapply(toCall,function(x) readBedandReturnLength(sampleSheet$fp4_name[x]))
+
+m_macs <- data.frame(names=unlist(lapply(1:length(macs_lengths),function(x) rep(sampleSheet$GenomicsID[x],length(macs_lengths[[x]])))),length=unlist(macs_lengths),peakCaller="MACS")
+m_sw <- data.frame(names=unlist(lapply(1:length(sw_lengths),function(x) rep(sampleSheet$GenomicsID[x],length(sw_lengths[[x]])))),length=unlist(sw_lengths),peakCaller="SWEMBL")
+m <- rbind(m_macs,m_sw)
+
+make_png("peakWidths")
+p <- ggplot(m,aes(x=names,y=length)) + geom_boxplot(aes(fill=peakCaller)) + coord_flip();
+show(p)
+dev.off()
+@ 
+
+\section{Peak Annotation}
+<<LoadTSSannotation,eval=T>>=
+library(ChIPpeakAnno)
+
+if (config$genome == "NCBI36"){
+  data(TSS.human.NCBI36)
+  TSS <- TSS.human.NCBI36
+}
+if (config$genome == "GRCh37"){
+  data(TSS.human.GRCh37)
+  TSS <- TSS.human.GRCh37
+}
+if (config$genome == "NCBIM37"){
+  data(TSS.mouse.NCBIM37)
+  TSS <- TSS.mouse.NCBIM37
+}
+@ 
+
+<<TSSannotation,eval=T>>=
+summTable <- NULL
+  if (!file.exists("tables/TSSannoSumTable.txt") || !file.exists("images/distToTSS.png")){
+    toDo <- which(!is.na(sampleSheet$sharedName))
+    if (length(toDo)){
+      jobs <- lapply(toDo,function(x) lsf.submit2(annotateBedFileWithTSS,bedFile=sampleSheet$sharedName[x],tss=TSS,ctrl=ctrl))
+      results <- jobMonitor(jobs,verbose=F)
+      names(results) <- sampleSheet$sharedName[toDo]
+      cols <- colorRampPalette(brewer.pal(12,"Set3"))(length(toDo))
+      make_png("distToTSS")
+      boxplot(sapply(results,function(x) x$shortestDistance),names=sampleSheet$sharedName[toDo],las=2,col=cols,"Set3")
+      legend("topright",legend=paste(sampleSheet$Factor,sampleSheet$Condition,sampleSheet$Replicate,sep="_")[toDo],col=cols,lwd=4)
+      dev.off()
+      summTable <- annoSummary(results)
+      summTable <- data.frame(summTable,row.names=paste(sampleSheet$GenomicsID,sampleSheet$Factor,sampleSheet$Condition,sep="_")[toDo])
+      write.table(summTable,file="tables/TSSannoSumTable.txt")
+    }
+  } else {
+    summTable <- read.table("tables/TSSannoSumTable.txt")
+  }
+@ 
+
+<<MACSpeaksAnnotation,eval=T>>=
+  peakAnnoDir <- "peaks/peakAnno/"
+dir.create(peakAnnoDir,showWarnings=F)
+toDo <- which(sampleSheet$macsPeaks>0)
+if (length(toDo)){
+outNames <- paste(peakAnnoDir,rmExt(basename(sampleSheet$macs_name[toDo])),"_MACS_peakAnno.csv",sep="")
+outNames <- outNames[is.empty(outNames)]
+if (length(outNames)){
+  jobs <- lapply(toDo,function(x) lsf.submit2(annotateBedFileWithTSS,bedFile=sampleSheet$macs_name[x],tss=TSS,ctrl=ctrl))
+  results <- jobMonitor(jobs,verbose=F)
+  names(results) <- sampleSheet$macs_name[toDo]
+  if (length(outNames)) lapply(1:length(outNames),function(x) write.table(as.data.frame(results[[x]]),sep=",",row.names=F,col.names=T,file=outNames[x]))
+}
+}
+@ 
+
+<<hiConfpeaksAnnotationAndGOannotation,eval=F>>=
+ peakAnnoDir <- "peaks/peakAnno/"
+dir.create(peakAnnoDir,showWarnings=F)
+toDo <- which(sampleSheet$sharedPeaks>0)
+if (length(toDo)){
+outNames <- paste(peakAnnoDir,rmExt(basename(sampleSheet$sharedName[toDo])),"_peakAnno.csv",sep="")
+outNames <- outNames[is.empty(outNames)]
+if (length(outNames)){
+  jobs <- lapply(toDo,function(x) lsf.submit2(annotateBedFileWithTSS,bedFile=sampleSheet$sharedName[x],tss=TSS,ctrl=ctrl))
+  results <- jobMonitor(jobs,verbose=F)
+  ### TODO  GO annotation only supports Humans at the moment
+  if (config$genome=="NCBI36" && config$doGO=="TRUE"){
+    dir.create("peaks/peakAnno/GOenrich",showWarnings=F)
+    ctrl$packages <- c(ctrl$packages,c("ChIPpeakAnno","org.Hs.eg.db"))
+    jobs <- lapply(results,function(x) lsf.submit2(getEnrichedGO,x,orgAnn="org.Hs.eg.db",maxP=0.05,multiAdj=T,minGOterm=10,multiAdjMethod="BH",ctrl=ctrl))
+    goResults <- jobMonitor(jobs,verbose=F)
+    #Ouptut the top 20 go terms in each category in a csv file
+    ### TODO - Beter tabular and graphical output, including p.values and counts.
+    bpResults <- sapply(1:length(goResults),function(x) as.character(goResults[[x]]$bp$go.term[order(goResults[[x]]$bp$pvalue)][1:20]))
+    colnames(bpResults) <- paste(sampleSheet$Tissue,sampleSheet$Factor,sampleSheet$Condition,sampleSheet$Replicate,rep="_")[toDo]
+    write.table(bpResults,file="peaks/peakAnno/GOenrich/enrichedBP.csv",sep=",",row.names=F,col.names=T,quote=F)
+    mfResults <- sapply(1:length(goResults),function(x) as.character(goResults[[x]]$mf$go.term[order(goResults[[x]]$mf$pvalue)][1:20]))
+    colnames(mfResults) <- paste(sampleSheet$Tissue,sampleSheet$Factor,sampleSheet$Condition,sampleSheet$Replicate,rep="_")[toDo]
+    write.table(mfResults,file="peaks/peakAnno/GOenrich/enrichedMF.csv",sep=",",row.names=F,col.names=T,quote=F)
+    ccResults <- sapply(1:length(goResults),function(x) as.character(goResults[[x]]$cc$go.term[order(goResults[[x]]$cc$pvalue)][1:20]))
+    colnames(ccResults) <- paste(sampleSheet$Tissue,sampleSheet$Factor,sampleSheet$Condition,sampleSheet$Replicate,rep="_")[toDo]
+    write.table(ccResults,file="peaks/peakAnno/GOenrich/enrichedCC.csv",sep=",",row.names=F,col.names=T,quote=F)
+  }
+  names(results) <- sampleSheet$sharedName[toDo]
+  if (length(outNames)) lapply(1:length(outNames),function(x) write.table(as.data.frame(results[[x]]),sep=",",row.names=F,col.names=T,file=outNames[x]))
+}
+}
+@
+
+<<SWEMBLpeaksAnnotation,eval=T>>=
+  peakAnnoDir <- "peaks/peakAnno/"
+dir.create(peakAnnoDir,showWarnings=F)
+toDo <- which(sampleSheet$swemblPeaks>0)
+if (length(toDo)){
+outNames <- paste(peakAnnoDir,rmExt(basename(sampleSheet$sw_name[toDo])),"_SWEMBL_peakAnno.csv",sep="")
+outNames <- outNames[is.empty(outNames)]
+if (length(outNames)){
+  jobs <- lapply(toDo,function(x) lsf.submit2(annotateBedFileWithTSS,bedFile=sampleSheet$sw_name[x],tss=TSS,ctrl=ctrl))
+  results <- jobMonitor(jobs,verbose=F)
+  names(results) <- sampleSheet$sw_name[toDo]
+  if (length(outNames)) lapply(1:length(outNames),function(x) write.table(as.data.frame(results[[x]]),sep=",",row.names=F,col.names=T,file=outNames[x]))
+}
+}
+@ 
+
+
+
+<<customAnnotatePeakswithReads,eval=F>>=
+### Annotate Peaks with READS ###
+### This annoates MACS peaks with the read information, such as RPKM, max height positon and pileup etc
+  if (is.null(sampleSheet$macs_name_anno)){
+    sampleSheet$macs_name_anno <- NA
+  }
+### Only annotate things that have macs peaks and have not been annotated before
+toDo <- which(apply(cbind(sampleSheet$macsPeaks>0,is.na(sampleSheet$macs_name_anno)),1,all))
+      
+      annotateAndSave <- function(bedFile,bamFile,outFile){
+        x <- annotateBedFileWithReadDepth(bedFile,bamFile)
+        write.table(x,file=outFile,row.names=F,col.names=F,quote=F,sep="\t")
+
+      }
+      ctrl$savelist <- c(ctrl$savelist,"annotateAndSave","annotateBedFileWithReadDepth","readBED","BAMgetReadInfoFromBedFile")
+      
+      outFiles <- paste(rmExt(sampleSheet$macs <- name),"_anno.bed",sep="")
+      jobs <- lapply(toDo,function(x) lsf.submit2(annotateAndSave,sampleSheet$macs_name[x],sampleSheet$bamFileNameFiltered[x],outFiles[x],ctrl=ctrl))
+      sampleSheet$macs_name_anno[toDo] <- outFiles[toDo]
+### Wait for the annoation to finish before proceeding
+      wait <- jobMonitor(jobs,verbose=F)
+@ 
+
+
+      
+<<GSC,eval=T>>=
+  if (!file.exists("images/GSCheatmap.png")){
+### This section calculates the GSC overlap statistic for all pairwise combinations of MACS peaks
+      GSC <- function(bed1,bed2,regions="/home/macart01/software/genome_structural_correction/hg18RegionLengths.txt",r=0.05,n=10000,test="c",s=0.01){
+        b1 <- tempfile()
+        b2 <- tempfile()
+        system(paste("grep -v \"track\"",bed1,"|grep -v \"random\"|sortBed |cut -f 1,2,3 >",b1))
+        system(paste("grep -v \"track\"",bed2,"|grep -v \"random\"|sortBed |cut -f 1,2,3 >",b2))
+        results <- system(paste("/home/macart01/software/genome_structural_correction/python_encode_statistics/trunk/block_bootstrap.py -1",b1,"-2",b2,"-d",regions,"-r",r,"-n",n,"-t",test,"-s",s),intern=T)
+        unlink(c(b1,b2))
+        results <- as.numeric(results[c(2,4)])
+        names(results) <- c("z-score","p-value")
+        results
+}
+      ### If you want to use something other than MACS peaks, cahange these two lines
+      names <- sampleSheet$macs_name[which(sampleSheet$macsPeaks>0)]
+      readName <- paste(sampleSheet$Factor,sampleSheet$Condition,sep="_")[which(sampleSheet$macsPeaks>0)]
+
+      ### Make a list of the file names to use
+      x <- lapply(names,function(a) lapply(names,function(b) c(a,b)))
+      r <- list()
+      for (f in 1:length(x)){
+        r <- c(r,x[[f]])
+      }
+      
+      ### Submit all the jobs to LSFa
+      jobs <- lapply(r,function(x) lsf.submit2(GSC,x[1],x[2],ctrl=ctrl))
+      results <- jobMonitor(jobs,verbose=F)
+
+      ### Parse the output
+      r <- matrix(sapply(results,function(y) y[1]),nrow=length(names))
+      colnames(r) <- readName
+      row.names(r) <- readName
+      ord <- order(colnames(r))
+      r <- r[ord,ord]
+      diag(r) <- NA
+#      r[lower.tri(r)] <- NA
+
+      ### Make the plot
+      library(RColorBrewer)
+      library(gplots)
+      make_png("GSCheatmap")
+      heatmap.2(r,trace="none",Colv=F,Rowv=F,dendrogram="none",col=brewer.pal(9,"Blues"),margins=c(10,10))
+      dev.off()
+}
+@ 
+
+<<rGADEM,eval=F>>=
+bedToRangedData <- function(bedFile){
+bed <- readBED(bedFile)
+bed[,2][bed[,2] <=0] <- 1
+RangedData(IRanges(start=as.numeric(bed[,2]),end=as.numeric(bed[,3])),space=as.factor(bed[,1]))
+}
+  
+  library(rGADEM)
+if (config$genome == "NCBI36" ){
+  library("BSgenome.Hsapiens.UCSC.hg18")
+  genomeName <- Hsapiens
+}
+if (config$genome =="GRCh37"){
+  library("BSgenome.Hsapiens.UCSC.hg19")
+  genomeName <- Hsapiens
+}
+if (config$genome =="NCBIM37"){
+  library("BSgenome.Mmusculus.UCSC.mm9")
+  
+}
+
+names <- sampleSheet$macs_name[!is.na(sampleSheet$macs_name)]
+peaks <- bedToRangedData(names[1])
+results <- GADEM(peaks,genome=genomeName)
+@ 
+      
+<<TSSannoTable,results=tex>>=
+if (!is.null(summTable))  xtable(summTable,caption="Distance to Closest TSS",label="fig:TSStable",digits=0)
+@
+
+
+\begin{figure}[htbp]
+\begin{center}
+\includegraphics[]{images/distToTSS.png}
+\caption{Shortest Distance to TSS}
+\label{fig:TSSshortDist}
+\end{center}
+\end{figure}
+
+
+\begin{figure}[htbp]
+\begin{center}
+\includegraphics[]{images/peakWidths.png}
+\caption{Box Plots of Peak Widths}
+\label{fig:peakWidths}
+\end{center}
+\end{figure}
+
+<<wiggleHistograms>>=
+### Collect the wiggle file jobs
+  if (any(WigtoDo)){
+  results <- jobMonitor(WigJobs,verbose=F)
+}
+
+### Only draw wiggle files if the image is not present, so delete to re-make them
+if (!file.exists("images/wigHist.png")){
+  toDraw <- which(rowSums(cbind(file.exists(sampleSheet$wiggleFile),is.na(sampleSheet$derivedFrom)))==2)
+  inFiles <- sampleSheet$wiggleFile[toDraw]
+  jobs <- lapply(inFiles,function(x) lsf.submit2(getHist,inFile=x,ctrl=ctrl))
+  results <- jobMonitor(jobs,verbose=F)
+  y <- lapply(results,function(x) t(data.frame(sapply(strsplit(x,split="\t"),function(y) as.numeric(c(y[1],y[2]))))))
+  
+### Normalise by total, need to think more about this
+  for (x in 1:length(y)){
+  y[[x]][,2] <- (y[[x]][,2]/sum(y[[x]][,2]))
+}
+  # Getthe max height
+  maxX <- max(sapply(y,function(x) max(x[,1])))
+  maxY <- max(sapply(y,function(x) max(x[,2])))
+  breaks <- as.vector(quantile(0:(log10(maxX)+1),probs=seq(from=0,to=1,by=1/20)))
+  bins <- lapply(y,function(x) cut(log10(x[,1]),breaks=breaks))
+  results2 <- sapply(1:length(y),function(x) sapply(split(y[[x]][,2],bins[[x]]),sum))
+  results2[results2==0] <- NA
+  rownames(results2) <- 10^breaks[1:length(breaks)-1]
+  colnames(results2)  <- as.vector(paste(sampleSheet$GenomicsID,sampleSheet$Factor,sampleSheet$Condition,sampleSheet$Replicate,sep="_")[toDraw])
+  m <- melt(results2)
+
+###
+  m$Factor = rep(sampleSheet$Factor[toDraw],each=length(breaks)-1)
+  m$Condition = rep(sampleSheet$Condition[toDraw],each=length(breaks)-1)
+  m$Tissue = rep(sampleSheet$Tissue[toDraw],each=length(breaks)-1)
+  m$Replicate = rep(sampleSheet$Replicate[toDraw],each=length(breaks)-1)
+  m$ID = rep(paste(sampleSheet$Tissue,sampleSheet$Factor,sampleSheet$Condition,sep="_")[toDraw],each=length(breaks)-1)
+###
+  
+  p <- ggplot(m,aes(x=as.numeric(X1),y=value))
+  p <- p + scale_x_log10() + scale_y_log10() + geom_smooth(aes(col=as.factor(X2),size=1))
+#  qplot(data=m,x=as.numeric(X1),y=value,log="xy",geom="smooth",xlim=c())
+  make_png("wigHist",width=700,height=700)
+  show(p)
+  dev.off()
+
+  p <- ggplot(m,aes(x=as.numeric(X1),y=value))
+  p <- p + scale_x_log10() + scale_y_log10() + geom_smooth(aes(col=as.factor(Factor),size=1))
+  make_png("wigHist_Factor",width=700,height=700)
+  show(p)
+  dev.off()
+
+  p <- ggplot(m,aes(x=as.numeric(X1),y=value))
+  p <- p + scale_x_log10() + scale_y_log10() + geom_smooth(aes(col=as.factor(Tissue),size=1))
+  make_png("wigHist_Tissue",width=700,height=700)
+  show(p)
+  dev.off()
+
+  p <- ggplot(m,aes(x=as.numeric(X1),y=value))
+  p <- p + scale_x_log10() + scale_y_log10() + geom_smooth(aes(col=as.factor(Replicate),size=1))
+  make_png("wigHist_Replicate",width=700,height=700)
+  show(p)
+  dev.off()
+
+  p <- ggplot(m,aes(x=as.numeric(X1),y=value))
+  p <- p + scale_x_log10() + scale_y_log10() + geom_smooth(aes(col=as.factor(ID),size=1))
+  make_png("wigHist_ID",width=700,height=700)
+  show(p)
+  dev.off()
+}
+@ 
+
+\begin{figure}[htbp]
+\begin{center}
+\includegraphics[]{images/wigHist.png}
+\caption{Read Depth Histogram}
+\label{fig:wigHist}
+\end{center}
+\end{figure}
+
+
+Figure~\ref{fig:wigHist} shows a histogram of read depth, with the depth of reads on the X axis and a normalised frequency on the Y axis. MORE DETAIL NEEDED HERE.
+
+
+\section{Session Information}
+\label{sec:sessionInfo}
+All R objects up to this point have been saved as Robjects/endOfPipeline.Rda.
+
+<<sessionInformation,results=tex>>==
+toLatex(sessionInfo())
+print(xtable(t(versionTable),caption="Version Info",label="tab:version"),type="latex")
+@ 
+
+<<saveEndOfSession>>==
+save.image(file = "Robjects/endOfPipeline.Rda")
+@
+
+<<runTime>>==
+runTime=round(Sys.time()-start,2)
+@
+
+Run time = \Sexpr{runTime} minutes
+
+\end{document}

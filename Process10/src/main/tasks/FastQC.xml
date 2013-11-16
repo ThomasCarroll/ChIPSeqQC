@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="ISO-8859-1" ?>
+<task:task xmlns:task="http://cancerresearchuk.org/workflow/task"
+           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+           xsi:schemaLocation="http://cancerresearchuk.org/workflow/task http://uk-cri-lbio01/schema/workflow/task-1.4.xsd">
+
+
+    <name>FastQC</name>
+    <description>Bam processing for ChIPseqPipeline.</description>
+
+    <program type="commandLine">
+        <executable>
+	mkdir -p ${OutPutDir}
+	${fastqcexec} -o ${OutPutDir} -f ${format} ${FQfile}
+	</executable>
+    </program>
+
+    <inputs>
+        <input name="FQfile" required="true" description="The FQ file."/>
+    </inputs>
+
+    <outputs>
+        <output name="OutputFromFQ" required="true" safeNaming="false" description="Sam realigned by pipeline"/>
+    </outputs>
+
+    <arguments>
+	<arg name="OutPutDir" required="true" description="Working Directory"/>
+	<arg name="fastqcexec" required="true" description="Working Directory"/>
+	<arg name="format" required="true" description="Working Directory"/>
+    </arguments>
+
+</task:task>
+

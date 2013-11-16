@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="ISO-8859-1" ?>
+<task:task xmlns:task="http://cancerresearchuk.org/workflow/task"
+           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+           xsi:schemaLocation="http://cancerresearchuk.org/workflow/task http://uk-cri-lbio01/schema/workflow/task-1.4.xsd">
+
+    <name>GenomeInfoProcess</name>
+    <description>Bam processing for ChIPseqPipeline.</description>
+
+    <program type="commandLine">
+       <executable>
+	export PYTHONPATH=${pythonlibs}
+	${python} ${pipelineBase}/PythonScripts/CRIGenome.py ${bam} ${TargetGenome}
+	</executable>
+    </program>
+
+    <inputs>
+        <input name="bam" required="true" description="The Bam file." />
+    </inputs>
+
+    <outputs>
+        <output name="bam_GenomeInfo" required="true" safeNaming="false" description="Bam processes by pipeline" />
+    </outputs>
+
+    <arguments>
+        <arg name="TargetGenome" required="true" description="Desired genome for data to be aligned against" />
+        <arg name="python" required="true" description="python executable" />
+        <arg name="pipelineBase" required="true" description="Basedirectory of pipeline" />
+        <arg name="pythonlibs" required="true" description="Basedirectory of pipeline" />
+        <arg name="bamDir" required="true" description="Basedirectory of pipeline" />
+    </arguments>
+
+
+
+</task:task>

@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="ISO-8859-1" ?>
+<pipe:pipeline xmlns:pipe="http://cancerresearchuk.org/pipeline/1.2"
+               xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+               xsi:schemaLocation="http://cancerresearchuk.org/pipeline/1.2 http://uk-cri-lsol03:8080/solexa/solexa01/schema/workflow/pipeline-1.2.xsd">
+
+    <name>Feature Profile Pipeline</name>
+    <description>Profiling features</description>
+
+    <tasks>
+	<specialisationSet name="AcrossPeaksCaller" type="AcrossPeaksCaller" variable="trio">
+
+	<subtasks> 
+
+	<task name="AcrossPeaksProcess" type="AcrossPeaksProcess">
+
+	 <resources>
+            <memory>4G</memory>
+		<!--<cpus>4</cpus>-->
+        </resources>
+        
+	<inputs>
+   	     <input name="samplesheet">${samplesheet}</input>
+       </inputs>
+	     
+       <outputs>
+               <output name="AcrossPeakCalls"  deleteOnFailure="true">${WorkingDirectory}/Peaks/PeakProfiles/${SampleName}_AcrossPeakCallers.txt</output>
+       </outputs>
+
+       <arguments>
+    	        <arg name="SampleName">${SampleName}</arg>
+	</arguments> 
+     </task>
+	</subtasks> 
+ 	</specialisationSet> 
+
+    </tasks>
+
+</pipe:pipeline>

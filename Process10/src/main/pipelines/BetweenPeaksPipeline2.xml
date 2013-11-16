@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="ISO-8859-1" ?>
+<pipe:pipeline xmlns:pipe="http://cancerresearchuk.org/workflow/pipeline"
+               xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+               xsi:schemaLocation="http://cancerresearchuk.org/workflow/pipeline http://uk-cri-lbio01/schema/workflow/pipeline-1.4.xsd">
+
+    <name>Between Peaks Pipeline</name>
+    <description>PComparison of peaks</description>
+
+    <tasks>
+	<specialisationSet name="BetweenPeaksCaller" type="BetweenPeaksCaller" variable="trio">
+
+	<subtasks> 
+
+	<task name="BetweenPeaksProcess2" type="BetweenPeaksProcess2">
+
+	 <resources>
+         <memory>4G</memory>
+         <maxMemory>16G</maxMemory> 
+		<!--<cpus>4</cpus>-->
+        </resources>
+        
+	<inputs>
+   	     <input name="SampleName">${SampleName}</input>
+   	     <input name="SampleName2">${SampleName2}</input>
+       </inputs>
+	     
+       <outputs>
+               <output name="OutFile"  deleteOnFailure="true">${OutName}_GenoMetriCorr.txt</output>
+       </outputs>
+       <arguments>
+    	        <arg name="OutName">${OutName}</arg>
+    	        <arg name="lengths">${lengths}</arg>
+    	        <arg name="rexec">${rexec}</arg>
+    	        <arg name="pipelineBase">${pipelineBase}</arg>
+    	        <arg name="rlibs">${rlibs}</arg>
+	</arguments> 	
+     	</task>
+	</subtasks> 
+ 	</specialisationSet> 
+ 
+
+
+    </tasks>
+
+</pipe:pipeline>

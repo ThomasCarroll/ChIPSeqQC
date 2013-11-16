@@ -1,0 +1,430 @@
+<?xml version="1.0" encoding="ISO-8859-1" ?>
+<pipe:pipeline xmlns:pipe="http://cancerresearchuk.org/workflow/pipeline"
+               xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+               xsi:schemaLocation="http://cancerresearchuk.org/workflow/pipeline http://uk-cri-lbio01/schema/workflow/pipeline-1.4.xsd">
+
+    <name>Feature Profile Pipeline</name>
+    <description>Profiling features</description>
+
+    <tasks>
+	<specialisationSet name="ProfileFeatureCaller" type="ProfileFeatureCaller" variable="trio">
+
+	<subtasks> 
+
+	<task name="MakeMergedRegionsProcess" type="MakeMergedRegionsProcess">
+
+	 <resources>
+                        <memory>4G</memory>
+                        <maxMemory>16G</maxMemory> 
+		<!--<cpus>4</cpus>-->
+        </resources>
+        
+	<inputs>
+   	     <input name="bed">${peakbed}</input>
+	     <input name="genomeFile">${genomeFile}</input>
+       </inputs>
+	     
+       <outputs>
+               <output name="mergedpeakbed"  deleteOnFailure="true">${PeakDirectory}/PeakProfiles/${mergedpeakbed}_Merged.bed</output>
+       </outputs>
+
+       <arguments>
+    	        <arg name="TheDirectory">${WorkingDirectory}</arg>
+    	        <arg name="ReadLength">${ReadLength}</arg>
+    	        <arg name="bedtools">${bedtools}</arg>
+				
+	</arguments> 
+ 
+      </task>
+
+	 <task name="AnnotatePeakProcess2" type="AnnotatePeakProcess2">
+       <resources>
+                        <memory>4G</memory>
+                        <maxMemory>16G</maxMemory> 
+        </resources>
+            <inputs>
+                <input name="Peaks">${peakbed}</input>
+            </inputs>
+
+            <outputs>
+              <output name="AnnotatedPeaks" deleteOnFailure="false">${PeakDirectory}/${Test}_peaks_Annotated.xls</output>
+		<output name="SummaryAnnotation" deleteOnFailure="false">${PeakDirectory}/${Test}_peaks_Annotated.summary</output>
+		<output name="EnrichmentFile" deleteOnFailure="false">${PeakDirectory}/${Test}_GO_Results.txt</output>
+            </outputs>
+    	<arguments>
+	    <arg name="TheDirectory">${WorkingDirectory}</arg>
+	    <arg name="genepos">${genepos}</arg>
+	    <arg name="genesets">${genesets}</arg>	    
+	    <arg name="rexec">${rexec}</arg>
+	    <arg name="pipelineBase">${pipelineBase}</arg>
+	    <arg name="rlibs">${rlibs}</arg>
+    	</arguments> 
+            
+	</task>
+
+
+	<task name="GenePeakProfileProcess" type="GenePeakProfileProcess">
+    
+    <depends>
+        <task>AnnotatePeakProcess2</task>
+    </depends>  
+
+	 <resources>
+                        <memory>4G</memory>
+                        <maxMemory>16G</maxMemory> 
+        </resources>
+
+
+
+	<inputs>
+   	     <input name="bed">${PeakDirectory}/${Test}_peaks_Annotated.xls</input>
+       </inputs>
+	     
+       <outputs>
+               <output name="outfilecounts"  deleteOnFailure="true">${PeakDirectory}/PeakProfiles/${mergedpeakbed}_InGenePeakCounts.txt</output>
+               <output name="outfileprofile"  deleteOnFailure="true">${PeakDirectory}/PeakProfiles/${mergedpeakbed}_InGenePeakProfile.txt</output>
+       </outputs>
+
+       <arguments>
+    	     <arg name="TheDirectory">${WorkingDirectory}</arg>
+	    <arg name="rexec">${rexec}</arg>
+	    <arg name="pipelineBase">${pipelineBase}</arg>
+	    <arg name="rlibs">${rlibs}</arg>
+	</arguments> 
+ 
+      </task>
+
+	<task name="ComplementBedProcess" type="ComplementBedProcess">
+
+        <depends>
+            <task>MakeMergedRegionsProcess</task>
+        </depends>  
+
+	 <resources>
+                        <memory>4G</memory>
+                        <maxMemory>16G</maxMemory> 
+		<!--<cpus>4</cpus>-->
+        </resources>
+        
+	<inputs>
+   	     <input name="bed">${PeakDirectory}/PeakProfiles/${mergedpeakbed}_Merged.bed</input>
+	     <input name="genomeFile">${genomeFile}</input>
+       </inputs>
+	     
+       <outputs>
+               <output name="compbed"  deleteOnFailure="true">${PeakDirectory}/PeakProfiles/${mergedpeakbed}_MergedComplement.bed</output>
+       </outputs>
+
+       <arguments>
+    	        <arg name="TheDirectory">${WorkingDirectory}</arg>
+    	        <arg name="bedtools">${bedtools}</arg>		
+	</arguments> 
+ 
+      </task>
+
+	<task name="CountBamInBedProcessMerged" type="CountBamInBedProcess">
+
+        <depends>
+            <task>MakeMergedRegionsProcess</task>
+        </depends>  
+
+	 <resources>
+                        <memory>4G</memory>
+                        <maxMemory>16G</maxMemory> 
+		<!--<cpus>4</cpus>-->
+        </resources>
+        
+	<inputs>
+   	     <input name="bed">${PeakDirectory}/PeakProfiles/${mergedpeakbed}_Merged.bed</input>
+	     <input name="bamFile">${BamDirectory}/${bam}</input>
+       </inputs>
+	     
+       <outputs>
+               <output name="CountedFile"  deleteOnFailure="true">${PeakDirectory}/PeakProfiles/${mergedpeakbed}_MergedCounts.bed</output>
+       </outputs>
+
+       <arguments>
+    	        <arg name="TheDirectory">${WorkingDirectory}</arg>		
+    	        <arg name="bedtools">${bedtools}</arg>
+	</arguments> 
+ 
+      </task>
+
+	<task name="GCRegionsProcess" type="GCRegionsProcess">
+
+        <depends>
+            <task>MakeMergedRegionsProcess</task>
+        </depends>  
+
+	 <resources>
+                        <memory>4G</memory>
+                        <maxMemory>16G</maxMemory> 
+        </resources>
+        
+	<inputs>
+   	     <input name="bed">${peakbed}</input>
+   	     <input name="fasta">${fastafile}</input>
+       </inputs>
+	     
+       <outputs>
+               <output name="GCContentFile"  deleteOnFailure="true">${PeakDirectory}/PeakProfiles/${mergedpeakbed}_GC.txt</output>
+       </outputs>
+
+       <arguments>
+    	        <arg name="TheDirectory">${WorkingDirectory}</arg>		
+    	        <arg name="bedtools">${bedtools}</arg>
+	</arguments> 
+ 
+      </task>
+
+	<task name="CountBamInBedProcess" type="CountBamInBedProcess">
+        <depends>
+            <task>MakeMergedRegionsProcess</task>
+        </depends>  
+
+	 <resources>
+                        <memory>4G</memory>
+                        <maxMemory>16G</maxMemory> 
+
+		<!--<cpus>4</cpus>-->
+        </resources>
+        
+	<inputs>
+   	     <input name="bed">${peakbed}</input>
+	     <input name="bamFile">${BamDirectory}/${bam}</input>
+       </inputs>
+	     
+       <outputs>
+               <output name="CountedFile"  deleteOnFailure="true">${PeakDirectory}/PeakProfiles/${mergedpeakbed}_Counts.bed</output>
+       </outputs>
+
+       <arguments>
+    	        <arg name="TheDirectory">${WorkingDirectory}</arg>		
+    	        <arg name="bedtools">${bedtools}</arg>
+	</arguments> 
+ 
+      </task>
+
+	<task name="CountBamInBedFileByStrandPos" type="CountBamInBedFileByStrand">
+        <depends>
+            <task>MakeMergedRegionsProcess</task>
+        </depends>  
+
+	 <resources>
+                        <memory>4G</memory>
+                        <maxMemory>16G</maxMemory> 
+		<!--<cpus>4</cpus>-->
+        </resources>
+        
+	<inputs>
+   	     <input name="bed">${peakbed}</input>
+	     <input name="bam">${BamDirectory}/${bam}</input>
+       </inputs>
+	     
+       <outputs>
+               <output name="CountedFile"  deleteOnFailure="true">${PeakDirectory}/PeakProfiles/${mergedpeakbed}_CountsByPos.bed</output>
+       </outputs>
+
+       <arguments>
+    	        <arg name="TheDirectory">${WorkingDirectory}</arg>	
+    	        <arg name="strand">+</arg>	
+    	        <arg name="bedtools">${bedtools}</arg>
+	</arguments> 
+ 
+      </task>
+
+	<task name="CountBamInBedFileByStrandNeg" type="CountBamInBedFileByStrand">
+        <depends>
+            <task>MakeMergedRegionsProcess</task>
+        </depends>  
+
+	 <resources>
+                        <memory>4G</memory>
+                        <maxMemory>16G</maxMemory> 
+		<!--<cpus>4</cpus>-->
+        </resources>
+        
+	<inputs>
+   	     <input name="bed">${peakbed}</input>
+	     <input name="bam">${BamDirectory}/${bam}</input>
+       </inputs>
+	     
+       <outputs>
+               <output name="CountedFile"  deleteOnFailure="true">${PeakDirectory}/PeakProfiles/${mergedpeakbed}_CountsByNeg.bed</output>
+       </outputs>
+
+       <arguments>
+    	        <arg name="TheDirectory">${WorkingDirectory}</arg>	
+    	        <arg name="strand">-</arg>	
+    	        <arg name="bedtools">${bedtools}</arg>
+	</arguments> 
+ 
+      </task>
+
+
+	<task name="CoverageProfilesProcessInPeaks" type="CoveraqeProfilesProcess">
+        <depends>
+            <task>MakeMergedRegionsProcess</task>
+        </depends>  
+
+	 <resources>
+                        <memory>4G</memory>
+                        <maxMemory>16G</maxMemory> 
+		<!--<cpus>4</cpus>-->
+        </resources>
+        
+	<inputs>
+   	     <input name="bed">${PeakDirectory}/PeakProfiles/${mergedpeakbed}_Merged.bed</input>
+	     <input name="bam">${BamDirectory}/${bam}</input>
+       </inputs>
+	     
+       <outputs>
+               <output name="hist"  deleteOnFailure="true">${PeakDirectory}/PeakProfiles/${mergedpeakbed}_InPeaks.hist</output>
+       </outputs>
+
+       <arguments>
+    	        <arg name="TheDirectory">${WorkingDirectory}</arg>	
+    	        <arg name="bedtools">${bedtools}</arg>	
+	</arguments> 
+ 
+      </task>
+
+	<task name="CoverageProfilesProcessOutsidePeaks" type="CoveraqeProfilesProcess">
+        <depends>
+            <task>ComplementBedProcess</task>
+        </depends>  
+
+	 <resources>
+                        <memory>4G</memory>
+                        <maxMemory>16G</maxMemory> 
+		<!--<cpus>4</cpus>-->
+        </resources>
+        
+	<inputs>
+   	     <input name="bed">${PeakDirectory}/PeakProfiles/${mergedpeakbed}_MergedComplement.bed</input>
+	     <input name="bam">${BamDirectory}/${bam}</input>
+       </inputs>
+	     
+       <outputs>
+               <output name="hist"  deleteOnFailure="true">${PeakDirectory}/PeakProfiles/${mergedpeakbed}_OutSidePeaks.hist</output>
+       </outputs>
+
+       <arguments>
+    	        <arg name="TheDirectory">${WorkingDirectory}</arg>		
+    	        <arg name="bedtools">${bedtools}</arg>
+	</arguments> 
+ 
+      </task>
+
+
+
+<task name="GrepAllFromHistProcessInPeaks" type="GrepAllFromHistProcess">
+        <depends>
+            <task>CoverageProfilesProcessInPeaks</task>
+        </depends>  
+
+	 <resources>
+                        <memory>4G</memory>
+                        <maxMemory>16G</maxMemory> 
+		<!--<cpus>4</cpus>-->
+        </resources>
+        
+	<inputs>
+   	     <input name="targethist">${PeakDirectory}/PeakProfiles/${mergedpeakbed}_InPeaks.hist</input>
+       </inputs>
+	     
+       <outputs>
+               <output name="justall_targethist"  deleteOnFailure="true">${PeakDirectory}/PeakProfiles/${mergedpeakbed}_GrepAllInPeaks.hist</output>
+       </outputs>
+
+       <arguments>
+    	        <arg name="TheDirectory">${WorkingDirectory}</arg>		
+	</arguments> 
+ 
+      </task>
+
+<task name="GrepAllFromHistProcessOutSidePeaks" type="GrepAllFromHistProcess">
+        <depends>
+            <task>CoverageProfilesProcessOutsidePeaks</task>
+        </depends>  
+
+	 <resources>
+                        <memory>4G</memory>
+                        <maxMemory>16G</maxMemory> 
+		<!--<cpus>4</cpus>-->
+        </resources>
+        
+	<inputs>
+   	     <input name="targethist">${PeakDirectory}/PeakProfiles/${mergedpeakbed}_OutSidePeaks.hist</input>
+       </inputs>
+	     
+       <outputs>
+               <output name="justall_targethist"  deleteOnFailure="true">${PeakDirectory}/PeakProfiles/${mergedpeakbed}_GrepAllOutSidePeaks.hist</output>
+       </outputs>
+
+       <arguments>
+    	        <arg name="TheDirectory">${WorkingDirectory}</arg>		
+	</arguments> 
+ 
+      </task>
+
+
+
+	</subtasks>
+	</specialisationSet>
+
+
+<!-- <task name="PeakInfoProcess" type="PeakInfoProcess">
+        <depends>
+            <task>ProfileFeatureCaller</task>
+        </depends>  
+
+	 <resources>
+            <memory>16G</memory>
+        </resources>
+        
+	<inputs>
+   	     <input name="genomeFile">${fastafile}</input>
+       </inputs>
+	     
+       <outputs>
+               <output name="ProfilePic"  deleteOnFailure="true">${WorkingDirectory}/Peaks/PeakProfiles/BoxplotOfRatios.png</output>
+       </outputs>
+
+       <arguments>
+    	        <arg name="TheDirectory">${WorkingDirectory}</arg>		
+	</arguments> 
+ 
+     </task>
+
+-->
+<task name="DiffBindSimple" type="DiffBindSimple">
+
+	 <resources>
+                        <memory>8G</memory>
+                        <maxMemory>16G</maxMemory> 
+        </resources>
+        
+	<inputs>
+   	     <input name="sampleSheet">${WorkingDirectory}/SampleSheet.csv</input>
+       </inputs>
+	     
+       <outputs>
+        	 <output name="OccuPlot" deleteOnFailure="true">${WorkingDirectory}/DiffBind/Occupancy_Heatmap.png</output>
+        	 <output name="AffinityPlot" deleteOnFailure="true">${WorkingDirectory}/DiffBind/Affinity_Heatmap.png</output>
+       	         <output name="AffinityPCA" deleteOnFailure="true">${WorkingDirectory}/DiffBind/Affinity_PCA.png</output>
+       </outputs>
+
+       <arguments>
+    	    <arg name="TheDirectory">${WorkingDirectory}</arg>	
+	    <arg name="rexec">${rexec}</arg>
+	    <arg name="pipelineBase">${pipelineBase}</arg>
+	    <arg name="rlibs">${rlibs}</arg>
+	    <arg name="caller">${caller}</arg>	    
+	</arguments> 
+ 
+     </task>
+
+    </tasks>
+
+</pipe:pipeline>

@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="ISO-8859-1" ?>
+<task:task xmlns:task="http://cancerresearchuk.org/workflow/task"
+           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+           xsi:schemaLocation="http://cancerresearchuk.org/workflow/task http://uk-cri-lbio01/schema/workflow/task-1.4.xsd">
+
+
+    <name>md5sum</name>
+    <description>samstats QC of a bam file</description>
+
+    <program type="commandLine">
+       <executable>
+	${md5sum} ${fileTomd5Sum} > ${md5sumResult}
+	</executable>
+    </program>
+
+    <inputs>
+        <input name="fileTomd5Sum" required="true" description="file to md5 sum"/>
+    </inputs>
+
+    <outputs>
+        <output name="md5sumResult" description="Text file with md5 sum information."/>
+    </outputs>
+    
+</task:task>

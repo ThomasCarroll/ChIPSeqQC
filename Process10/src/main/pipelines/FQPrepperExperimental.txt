@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="ISO-8859-1" ?>
+<pipe:pipeline xmlns:pipe="http://cancerresearchuk.org/workflow/pipeline"
+               xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+               xsi:schemaLocation="http://cancerresearchuk.org/workflow/pipeline http://uk-cri-lbio01/schema/workflow/pipeline-1.4.xsd">
+
+    <name>FQ prepping pipeline</name>
+    <description>Pipeline for removing contaminants from FASTQ.</description>
+
+    <tasks>
+
+	<specialisationSet name="FQPrepCaller" type="FQPrepCaller" variable="trio">
+
+	<subtasks> 
+         <argumentLoop name="splitloop" type="ifqAndSplitLoop" loopVar="read" loopArgument="reads" runAlways="false">
+		 <task name="FQClean" type="FQClean">
+		<resources>
+		    <memory>2G</memory>
+		 <maxMemory>16G</maxMemory> 
+		</resources>
+
+
+		    <inputs>
+			<input name="FastQ">${FastaFile}</input>
+		    </inputs>
+
+		     <outputs>
+		       <output name="TrimmedFQ"  deleteOnFailure="true">${FQDirectory}/${TrimmedFQ}</output>
+		    </outputs>
+
+			<arguments>
+			<arg name="trimgalore">${trimgalore}</arg>			
+			</arguments> 
+
+		  </task>
+
+	</subtasks>
+	</specialisationSet>
+    </tasks>
+
+
+
+
+</pipe:pipeline>

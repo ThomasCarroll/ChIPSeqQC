@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="ISO-8859-1" ?>
+<task:task xmlns:task="http://cancerresearchuk.org/workflow/task"
+           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+           xsi:schemaLocation="http://cancerresearchuk.org/workflow/task http://uk-cri-lbio01/schema/workflow/task-1.4.xsd">
+
+    <name>OrganiseCoverageStats</name>
+    <description>Update sampleSheet with bam file statistics.</description>
+
+    <program type="commandLine">
+        <executable>
+	Rscript --vanilla /lustre/mib-cri/carrol09/Work/MyPipe/Process7/RScripts/R_PlotCoverage.r ${TheCovDirectory}
+	</executable>
+    </program>
+
+
+    <outputs>
+        <output name="CovPlot" required="true" safeNaming="false" description="Wig processes by pipeline" />
+    </outputs>
+
+    <arguments>
+	<arg name="TheCovDirectory" required="true" description="Working Directory"/>
+    </arguments>
+
+</task:task>

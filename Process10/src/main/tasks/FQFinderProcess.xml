@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="ISO-8859-1" ?>
+<task:task xmlns:task="http://cancerresearchuk.org/workflow/task"
+           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+           xsi:schemaLocation="http://cancerresearchuk.org/workflow/task http://uk-cri-lbio01/schema/workflow/task-1.4.xsd">
+
+    <name>FQFinderProcess</name>
+    <description>Bam processing for ChIPseqPipeline.</description>
+
+    <program type="commandLine">
+        <executable>
+	perl /lustre/mib-cri/carrol09/Work/MyPipe/Process10/PerlScripts/FQPickUp.pl ${TempDir}
+	</executable>
+    </program>
+
+    <outputs>
+        <output name="FQLocations" required="true" safeNaming="false" description="Counts of reads under differeing conditions" />
+    </outputs>
+
+    <arguments>
+	<arg name="TempDir" required="true" description="Temp Directory"/>
+    </arguments>
+
+</task:task>

@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="ISO-8859-1" ?>
+<task:task xmlns:task="http://cancerresearchuk.org/workflow/task"
+           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+           xsi:schemaLocation="http://cancerresearchuk.org/workflow/task http://uk-cri-lbio01/schema/workflow/task-1.4.xsd">
+
+    <name>MainSicerProcess</name>
+    <description>Bam merging for ChIPseqPipeline.</description>
+
+    <program type="commandLine">
+        <executable>
+		/home/mib-cri/software/R-2.14.0/bin/Rscript  --vanilla /lustre/mib-cri/carrol09/Work/MyPipe/Process10/RScripts/RSicerSetUp.r ${WorkflowRunID} ${ConfigDir}
+	</executable>
+    </program>
+    <inputs>
+	<input name="OutPut" required="true" description="MergedFile by pipeline" />
+       <input name="ConFig" required="true" description="MergedFile by pipeline" />
+    </inputs>
+
+    <outputs>
+       <output name="OutPutSicer" required="true" safeNaming="false" description="MergedFile by pipeline" />
+    </outputs>
+
+    <arguments>
+	<arg name="WorkflowRunID" required="true" description="Name for Macs output"/>
+	<arg name="ConfigDir" required="true" description="Name for Macs output"/>
+    </arguments>
+
+</task:task>

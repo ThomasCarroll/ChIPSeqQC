@@ -1,0 +1,183 @@
+<?xml version="1.0" encoding="ISO-8859-1" ?>
+<pipe:pipeline xmlns:pipe="http://cancerresearchuk.org/workflow/pipeline"
+               xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+               xsi:schemaLocation="http://cancerresearchuk.org/workflow/pipeline http://uk-cri-lbio01/schema/workflow/pipeline-1.4.xsd">
+
+    <name>Realign Pipeline</name>
+    <description>Pipeline for realigning the FASTQ.</description>
+
+    <tasks>
+
+	<specialisationSet name="RealignCaller" type="RealignCaller" variable="trio">
+
+	<subtasks> 
+       
+
+
+ 
+	 <task name="FQTrimmerAlign" type="FQTrimmerAlign">
+        <resources>
+            <memory>2G</memory>
+         <maxMemory>16G</maxMemory> 
+		<!--<cpus>4</cpus>-->
+
+        </resources>
+            <inputs>
+                <input name="FastQ">${FastaFile}</input>
+            </inputs>
+	     <outputs>
+               <output name="trimmedFQ"  deleteOnFailure="true">${FQDirectory}/${Test}TrimmedTo${maxlength}.fq.gz</output>
+            </outputs>
+		<arguments>
+    		<arg name="fastxtrimmerexe">${fastxtrimmerexe}</arg>
+		<arg name="maxlength">${maxlength}</arg>
+		<arg name="QEflag">${QEflag}</arg>	
+		<arg name="python">${python}</arg>	
+		<arg name="pipelineBase">${pipelineBase}</arg>
+		<arg name="pythonlibs">${pythonlibs}</arg>	
+	    	</arguments> 
+       	  </task>
+
+
+
+
+
+
+
+	 <task name="AlignProcess" type="AlignProcess">
+              <depends>
+            <task>FQTrimmerAlign</task>
+        </depends>  
+	 
+        <resources>
+            <memory>4G</memory>
+         <maxMemory>16G</maxMemory> 
+		<!--<cpus>4</cpus>-->
+
+        </resources>
+            <inputs>
+                <input name="FastQ">${FQDirectory}/${Test}TrimmedTo${maxlength}.fq.gz</input>
+            </inputs>
+	     <outputs>
+               <output name="SaiFile"  deleteOnFailure="true">${FQDirectory}/${Test}.sai</output>
+            </outputs>
+		<arguments>
+    		<arg name="TheDirectory">${WorkingDirectory}</arg>
+		<arg name="Genome">${Genome}</arg>
+		<arg name="Test">${Test}</arg>
+		<arg name="bwa">${bwa}</arg>			
+	    	</arguments> 
+       	  </task>
+
+
+	 <task name="SaiToSam" type="SaiToSam">
+              <depends>
+            <task>AlignProcess</task>
+        </depends>  
+
+	<resources>
+            <memory>4G</memory>
+         <maxMemory>16G</maxMemory> 
+        </resources>
+
+            <inputs>
+                <input name="SaiFile" temporary="true">${FQDirectory}/${Test}.sai</input>
+                <input name="FastQ" temporary="true">${FQDirectory}/${Test}TrimmedTo${maxlength}.fq.gz</input>
+            </inputs>
+	     <outputs>
+               <output name="sam"  deleteOnFailure="true">${FQDirectory}/${Test}.sam</output>
+            </outputs>
+		<arguments>
+    		<arg name="TheDirectory">${WorkingDirectory}</arg>
+		<arg name="Genome">${Genome}</arg>
+		<arg name="Test">${Test}</arg>			
+		<arg name="bwa">${bwa}</arg>			
+	    	</arguments> 
+       	  </task>
+
+	 <task name="SortSamProcess" type="SortSamProcess">
+              <depends>
+            <task>SaiToSam</task>
+        </depends>  
+
+	<resources>
+            <memory>4G</memory>
+         <maxMemory>16G</maxMemory> 
+        </resources>
+
+            <inputs>
+                <input name="InputFile" temporary="true">${FQDirectory}/${Test}.sam</input>
+            </inputs>
+	     <outputs>
+               <output name="SortedFile"  deleteOnFailure="true">${FQDirectory}/${Test}_Sorted.bam</output>
+            </outputs>
+		<arguments>
+    		<arg name="TheDirectory">${WorkingDirectory}</arg>
+		<arg name="picard">${picard}</arg>			
+		<arg name="java">${java}</arg>
+	    	</arguments> 
+       	  </task>
+
+
+	 <task name="ReheaderProcess" type="ReheaderProcess">
+              <depends>
+            <task>SortSamProcess</task>
+        </depends>  
+
+	<resources>
+            <memory>1G</memory>
+         <maxMemory>2G</maxMemory> 
+        </resources>
+
+            <inputs>
+                <input name="InputFile" temporary="true">${FQDirectory}/${Test}_Sorted.bam</input>
+            </inputs>
+	     <outputs>
+               <output name="SortedFile"  deleteOnFailure="true">${FQDirectory}/${Test}_Rehead.bam</output>
+            </outputs>
+		<arguments>
+    		<arg name="Name">${Test}</arg>
+    		<arg name="GenomeBuild">${GenomeBuild}</arg>
+    		<arg name="TheDirectory">${WorkingDirectory}</arg>
+    		<arg name="ReAlignDirectory">${FQDirectory}</arg>
+		<arg name="python">${python}</arg>			
+		<arg name="samtools">${samtools}</arg>
+		<arg name="pipelineBase">${pipelineBase}</arg>
+		<arg name="pythonlibs">${pythonlibs}</arg>
+	    	</arguments> 
+       	  </task>
+
+
+
+
+	<task name="MarkDuplicateProcessFQ" type="MarkDuplicateProcessFQ">
+       <depends>
+		<task>ReheaderProcess</task>
+	</depends>
+	<resources>
+            <memory>4G</memory>
+         <maxMemory>16G</maxMemory> 
+        </resources>
+	  <inputs>
+		 <input name="MergedFile" temporary="true" >${FQDirectory}/${Test}_Rehead.bam</input>
+	 </inputs>
+            <outputs>
+                <output name="MarkedFile" deleteOnFailure="true">${bamDir}/${Test}.bwa.Realigned${GenomeBuild}.bam</output>
+            </outputs>
+    	<arguments>
+    	    <arg name="TheDirectory">${WorkingDirectory}</arg>
+	    <arg name="OutputName">${OutName}</arg>
+	    <arg name="GenomeBuild">${GenomeBuild}</arg>
+		<arg name="Test">${Test}</arg>
+		<arg name="picard">${picard}</arg>			
+		<arg name="java">${java}</arg>
+		<arg name="bamDir">${bamDir}</arg>		
+		<arg name="FQDirectory">${FQDirectory}</arg>		
+    	</arguments> 
+	</task>
+	</subtasks>
+	</specialisationSet>
+    </tasks>
+
+</pipe:pipeline>
+

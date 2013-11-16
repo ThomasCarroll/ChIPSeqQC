@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="ISO-8859-1" ?>
+<task:task xmlns:task="http://cancerresearchuk.org/workflow/task"
+           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+           xsi:schemaLocation="http://cancerresearchuk.org/workflow/task http://uk-cri-lbio01/schema/workflow/task-1.4.xsd">
+
+    <name>FQGetProcess</name>
+    <description>FQ merging for ChIPseqPipeline.</description>
+
+    <program type="commandLine">
+        <executable>
+	mkdir -p ${FQDir}
+	mkdir -p ${FQDir}/${BamName}
+	${rsync} ${CMDs} ${BamToGrab} ${CMDs2}${FQDir}/${BamName}/ ${logFileCMD}${FQDir}/${BamName}.log
+	</executable>
+    </program>
+
+    <outputs>
+       <output name="ReceivedFQ" required="true" safeNaming="false" description="MergedFile by pipeline" />
+    </outputs>
+
+
+    <arguments>
+	<arg name="TheDirectory" required="true" description="Working directory"/>
+       <arg name="BamToGrab" required="true" description="FQ location"/>
+       <arg name="BamName" required="true" description="FQ name"/>
+       <arg name="rsync" required="true" description="rsync executable"/>
+       <arg name="FQDir" required="true" description="rsync executable"/> 
+	<arg name="logFileCMD" required="true" description="rsync executable"/> 
+	<arg name="CMDs" required="true" description="rsync executable"/>        
+	<arg name="CMDs2" required="true" description="rsync executable"/> 
+    </arguments>
+
+</task:task>

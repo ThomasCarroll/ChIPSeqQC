@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="ISO-8859-1" ?>
+<task:task xmlns:task="http://cancerresearchuk.org/workflow/task"
+           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+           xsi:schemaLocation="http://cancerresearchuk.org/workflow/task http://uk-cri-lbio01/schema/workflow/task-1.4.xsd">
+
+    <name>MultiWigProcess</name>
+    <description>Splits the WigProcess pipeline to run over all the processed Bam files found.</description>
+
+    <program type="inbuilt"/>
+
+    <inputs>
+        <input name="bam_Proc" required="true" description="The processed Bam file." />
+        <input name="genome" required="true" description="genome." />
+    </inputs>
+
+    <outputs>
+        <output name="Wigs" plurality="multiple" required="true" safeNaming="true" description="BedGraphs processes by pipeline" />
+        <output name="Bedgraphs" plurality="multiple" required="true" safeNaming="true" description="BedGraphs processes by pipeline" />
+        <output name="BigBeds" plurality="multiple" required="true" safeNaming="true" description="BigBeds processes by pipeline" />
+        <output name="Histograms" plurality="multiple" required="true" safeNaming="true" description="Histograms of coverage" />
+        </outputs>
+
+</task:task>

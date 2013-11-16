@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="ISO-8859-1" ?>
+<pipe:pipeline xmlns:pipe="http://cancerresearchuk.org/workflow/pipeline"
+               xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+               xsi:schemaLocation="http://cancerresearchuk.org/workflow/pipeline http://uk-cri-lbio01/schema/workflow/pipeline-1.4.xsd">
+
+    <name>ChipBamProcess Pipeline_P1</name>
+    <description>Pipeline for generating Bam files processed for the ChIPseqPipeline.</description>
+
+    <tasks>
+
+	<specialisationSet name="ReOrderCaller" type="ReOrderCaller" variable="trio">
+
+	<subtasks> 
+       
+	 <task name="ReOrderProcess" type="ReOrderProcess">
+        <resources>
+         <memory>4G</memory>
+         <maxMemory>16G</maxMemory> 
+        </resources>
+            <inputs>
+                <input name="bam">${BamDirectory}/${Test}.bam</input>
+                <input name="ReferenceFile">${WorkingDirectory}/${ReferenceFile}</input>
+            </inputs>
+
+            <outputs>
+                        <output name="ReOrderedFile"  deleteOnFailure="false">${BamDirectory}/${Test}_ReOrdered.bam</output>
+            </outputs>
+	<arguments>
+    	    <arg name="TheDirectory">${WorkingDirectory}</arg>
+    	</arguments> 
+         </task>
+
+	     </subtasks>
+      </specialisationSet>
+
+
+    </tasks>
+</pipe:pipeline>
+

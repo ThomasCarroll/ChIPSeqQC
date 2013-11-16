@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="ISO-8859-1" ?>
+<task:task xmlns:task="http://cancerresearchuk.org/workflow/task"
+           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+           xsi:schemaLocation="http://cancerresearchuk.org/workflow/task http://uk-cri-lbio01/schema/workflow/task-1.4.xsd">
+
+
+    <name>SamtoolsFlagstat</name>
+    <description>samstats QC of a bam file</description>
+
+    <program type="commandLine">
+       <executable>
+	/lustre/mib-cri/carrol09/Samtools/samtools-0.1.18/samtools flagstat ${bamfile} > ${samoutfile}</executable>
+    </program>
+
+    <inputs>
+        <input name="bamfile" required="true" description="The BAM file to compute stats from"/>
+    </inputs>
+
+    <outputs>
+        <output name="samoutfile" description="The flagstats output file."/>
+    </outputs>
+    
+</task:task>

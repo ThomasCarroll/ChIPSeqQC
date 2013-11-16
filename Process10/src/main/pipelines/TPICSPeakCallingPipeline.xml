@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="ISO-8859-1" ?>
+<pipe:pipeline xmlns:pipe="http://cancerresearchuk.org/workflow/pipeline"
+               xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+               xsi:schemaLocation="http://cancerresearchuk.org/workflow/pipeline http://uk-cri-lbio01/schema/workflow/pipeline-1.4.xsd">
+
+    <name>ChipBamProcess Pipeline</name>
+    <description>Pipeline for generating Bam files processed for the ChIPseqPipeline.</description>
+
+    <tasks>
+        
+   
+	<specialisationSet name="TpicsPeakCaller" type="TpicsPeakCaller" variable="trio">
+
+
+	<subtasks> 
+
+
+	<task name="TPICsPeakCaller2" type="TPICsPeakCaller2">
+        <resources>
+            <memory>4G</memory>
+        <maxMemory>16G</maxMemory>
+        </resources>
+
+            <outputs>
+                <output name="OutputTPICs" deleteOnFailure="false">${TPICsDirectory}/${Test}/TPIC.bed</output>
+            </outputs>
+
+    	<arguments>
+    	    <arg name="TestName">${TPICsDirectory}/${Test}/</arg>
+	    <arg name="SampleName">${Test}</arg>
+	    <arg name="TheDirectory">${WorkingDirectory}</arg>
+		<arg name="GenomeForTPICS">${GT}</arg>
+		<arg name="shiftSize">${SS}</arg>
+		<arg name="Width">${min_size}</arg>
+              <arg name="TestBed">${Test}.bed</arg>
+              <arg name="ControlBed">${Control}.bed</arg>
+              <arg name="TheWideScaleWidth">${WideScale}</arg>
+		<arg name="perl">${perl}</arg>
+		<arg name="rlibs">${perl}</arg>
+		<arg name="tpics">${tpics}</arg>
+              <arg name="tpicszeta">${tpicszeta}</arg>
+              <arg name="tpicscoverage">${tpicscoverage}</arg>
+              <arg name="rexec">${rexec}</arg>
+              <arg name="genomeChrLengths">${genomeChrLengths}</arg>              
+    	</arguments>            
+	</task>
+
+	<task name="TPICsPeakSummary" type="TPICsPeakSummary">
+       <depends>
+		<task>TPICsPeakCaller2</task>
+       </depends>
+
+        <resources>
+            <memory>4G</memory>
+        <maxMemory>16G</maxMemory>
+        </resources>
+		
+            <inputs>
+                <input name="InputTPICs">${TPICsDirectory}/${Test}/TPIC.bed</input>
+            </inputs>
+
+            <outputs>
+                <output name="OutputTPICs2" deleteOnFailure="false">${TPICsDirectory}/${Test}/${Test}_TPICS_Peaks.bed</output>
+            </outputs>
+
+    	<arguments>
+    	    <arg name="TestName">${TPICsDirectory}/${Test}/</arg>
+	    <arg name="SampleName">${Test}</arg>
+	    <arg name="TheDirectory">${WorkingDirectory}</arg>
+		<arg name="GenomeForTPICS">${GT}</arg>
+		<arg name="shiftSize">${SS}</arg>
+		<arg name="Width">${min_size}</arg>
+              <arg name="TestBed">${Test}.bed</arg>
+              <arg name="ControlBed">${Control}.bed</arg>
+              <arg name="TheWideScaleWidth">${WideScale}</arg>
+              <arg name="bedtools">${bedtools}</arg>
+              <arg name="pipelineBase">${pipelineBase}</arg>              
+    	</arguments>            
+	</task>
+
+	     </subtasks>
+      </specialisationSet>
+    </tasks>
+</pipe:pipeline>
+

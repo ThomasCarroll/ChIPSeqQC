@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="ISO-8859-1" ?>
+<pipe:pipeline xmlns:pipe="http://cancerresearchuk.org/workflow/pipeline"
+               xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+               xsi:schemaLocation="http://cancerresearchuk.org/workflow/pipeline http://uk-cri-lbio01/schema/workflow/pipeline-1.4.xsd">
+
+    <name>ChipBamProcess Pipeline</name>
+    <description>Pipeline for generating Bam files processed for the ChIPseqPipeline.</description>
+
+    <tasks>
+        
+   
+	<specialisationSet name="SicerPeakCaller" type="SicerPeakCaller" variable="trio">
+
+
+	<subtasks> 
+
+
+	<task name="SicerProcess_CRI" type="SicerProcess_CRI">
+        <resources>
+            <memory>4G</memory>
+         <maxMemory>16G</maxMemory> 
+        </resources>
+
+            <outputs>
+                <output name="OutputSicer" deleteOnFailure="false">${SicerDirectory}/${Test}/Temp-${Test}-W${Window}-G${GapSize}-islands-summary-FDR0.01</output>
+                <output name="OutputSicerFull" deleteOnFailure="false">${SicerDirectory}/${Test}/${Test}-W${Window}-G${GapSize}-islands-summary-FDR0.01</output>
+            </outputs>
+    	<arguments>
+    	       <arg name="TestName">${SicerDirectory}/${Test}</arg>
+	       <arg name="BamDirectory">${BamDirectory}</arg>
+	       <arg name="TheDirectory">${WorkingDirectory}</arg>
+		<arg name="GenomeForSicer">${GS}</arg>
+		<arg name="shiftSize">${SS}</arg>
+              <arg name="TestBed">${Test}.bed</arg>
+              <arg name="ControlBed">${Control}.bed</arg>
+
+              <arg name="Window">${Window}</arg>
+              <arg name="GapSize">${GapSize}</arg>
+              <arg name="FDR">${FDR}</arg>
+              <arg name="sicerexec">${sicerexec}</arg>
+              <arg name="pythonlibs">${pythonlibs}</arg>
+              <arg name="pythonExec">${pythonExec}</arg>
+              <arg name="pipelineBase">${pipelineBase}</arg>
+    	</arguments> 
+            
+	</task>
+
+	     </subtasks>
+      </specialisationSet>
+
+
+    </tasks>
+</pipe:pipeline>
+

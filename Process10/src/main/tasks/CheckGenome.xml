@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="ISO-8859-1" ?>
+<task:task xmlns:task="http://cancerresearchuk.org/workflow/task"
+           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+           xsi:schemaLocation="http://cancerresearchuk.org/workflow/task http://uk-cri-lbio01/schema/workflow/task-1.4.xsd">
+
+    <name>CheckGenome</name>
+    <description>Bam processing for ChIPseqPipeline.</description>
+
+    <program type="commandLine">
+        <executable>
+	/home/mib-cri/software/PythonInstall/bin/python2.7 /lustre/mib-cri/carrol09/Work/MyPipe/CRIGenome.py ${bam}
+	</executable>
+    </program>
+
+    <inputs>
+        <input name="bam" required="true" description="The Bam file." />
+    </inputs>
+
+    <outputs>
+        <output name="GenomeOfBam" required="true" safeNaming="false" description="Bam processes by pipeline" />
+    </outputs>
+
+    <arguments>
+	<arg name="TheDirectory" required="true" description="Working Directory"/>
+    </arguments>
+
+</task:task>

@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="ISO-8859-1" ?>
+<pipe:pipeline xmlns:pipe="http://cancerresearchuk.org/workflow/pipeline"
+               xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+               xsi:schemaLocation="http://cancerresearchuk.org/workflow/pipeline http://uk-cri-lbio01/schema/workflow/pipeline-1.4.xsd">
+
+    <name>ChipBamProcess Pipeline</name>
+    <description>Pipeline for generating Bam files processed for the ChIPseqPipeline.</description>
+
+    <tasks>
+  
+	<specialisationSet name="GenomeGetter" type="GenomeGetter" variable="trio">
+
+	<subtasks> 
+       
+	<task name="GenomeInfoProcess" type="GenomeInfoProcess">
+                    <resources>
+                        <memory>1G</memory>
+                    </resources>
+                
+                    <inputs>
+                        <input name="bam">${bamDir}/${BamName}.bam</input>	
+                    </inputs>
+
+                    <outputs>
+                        <output name="bam_GenomeInfo">${bamDir}/${BamName}.info</output>
+                    </outputs>
+
+		<arguments>
+   			<arg name="TargetGenome">${genome}</arg>
+   			<arg name="python">${python}</arg>
+   			<arg name="pipelineBase">${pipelineBase}</arg>
+   			<arg name="pythonlibs">${pythonlibs}</arg>
+   			<arg name="bamDir">${bamDir}</arg>
+		</arguments>
+
+                </task>
+
+
+	     </subtasks>
+      </specialisationSet>
+
+
+ 
+    </tasks>
+</pipe:pipeline>

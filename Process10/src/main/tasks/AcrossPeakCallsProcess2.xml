@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="ISO-8859-1" ?>
+<task:task xmlns:task="http://cancerresearchuk.org/workflow/task"
+           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+           xsi:schemaLocation="http://cancerresearchuk.org/workflow/task http://uk-cri-lbio01/schema/workflow/task-1.4.xsd">
+
+    <name>AcrossPeakCallsProcess2</name>
+    <description>Update sampleSheet with bam file statistics.</description>
+
+    <program type="commandLine">
+        <executable>
+		export R_LIBS=${rlibs}
+		${rexec} --vanilla ${pipelineBase}/RScripts/R_RunCompare2peakSets.r ${Peaks1} ${Peaks2} ${Outfile1} ${Outfile2}
+	</executable>
+    </program>
+
+    <inputs>
+	<input name="Peaks1" required="true" description="Peaks 1"/>
+	<input name="Peaks2" required="true" description="Peaks 1"/>
+    </inputs>
+
+    <outputs>
+        <output name="Outfile1" required="true" safeNaming="false" description="Overlap and merged peaks annotated to their occurence" />
+        <output name="Outfile2" required="true" safeNaming="false" description="Stats on overlaps between peak sets" />
+    </outputs>
+
+   <arguments>
+	<arg name="rexec" required="true" description="Working Directory"/>
+	<arg name="pipelineBase" required="true" description="Working Directory"/>
+	<arg name="rlibs" required="true" description="Working Directory"/>
+    </arguments>
+
+
+</task:task>

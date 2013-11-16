@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="ISO-8859-1" ?>
+<task:task xmlns:task="http://cancerresearchuk.org/workflow/task"
+           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+           xsi:schemaLocation="http://cancerresearchuk.org/workflow/task http://uk-cri-lbio01/schema/workflow/task-1.4.xsd">
+
+
+    <name>CollectInsertSize</name>
+    <description>Bam processing for ChIPseqPipeline.</description>
+
+    <program type="commandLine">
+        <executable>
+		java -Xmx8g -jar /lustre/mib-cri/carrol09/Picard/CollectInsertSizeMetrics.jar I=${bamFile} O=${outFile} H=${histFile} VALIDATION_STRINGENCY=SILENT
+	</executable>
+    </program>
+
+    <inputs>
+        <input name="bamFile" required="true" description="The FQ file." />
+    </inputs>
+
+    <outputs>
+        <output name="outFile" required="true" safeNaming="false" description="Sam realigned by pipeline" />
+        <output name="histFile" required="true" safeNaming="false" description="Sam realigned by pipeline" />
+    </outputs>
+</task:task>
+

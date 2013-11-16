@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="ISO-8859-1" ?>
+<pipe:pipeline xmlns:pipe="http://cancerresearchuk.org/pipeline/1.2"
+               xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+               xsi:schemaLocation="http://cancerresearchuk.org/pipeline/1.2 http://uk-cri-lsol03:8080/solexa/solexa01/schema/workflow/pipeline-1.2.xsd">
+
+    <name>ChipBamProcess Pipeline</name>
+    <description>Pipeline for generating Bam files processed for the ChIPseqPipeline.</description>
+
+    <tasks>
+        
+   
+<!--	<task name="MacsPickUp" type="MacsPickUp">
+     	<depends>
+		<task>MacsPeakCaller</task>
+   	</depends>  
+  
+  	  	<arguments>
+		<arg name="TheDirectory">${WorkingDirectory}</arg>
+    		</arguments> 
+            
+	</task>
+
+
+	<task name="MacsFragmentLength" type="MacsFragmentLength">
+     	<depends>
+		<task>MacsPeakCaller</task>
+   	</depends>  
+  
+  	  	<arguments>
+		<arg name="TheDirectory">${WorkingDirectory}</arg>
+    		</arguments> 
+            
+	</task>
+
+-->
+
+	<specialisationSet name="MacsPeakCaller" type="MacsPeakCaller" variable="trio">
+
+
+	<subtasks> 
+       
+	 <task name="MacsProcess" type="MacsProcess">
+        <resources>
+            <memory>8G</memory>
+        </resources>
+            <inputs>
+                <input name="TestBam">${BamDirectory}/${Test}.bam</input>
+                <input name="ControlBam">${BamDirectory}/${Control}.bam</input>
+            </inputs>
+
+            <outputs>
+                <output name="Output1" deleteOnFailure="false">${WorkingDirectory}/Peaks/Macs_Peaks/${Test}_peaks.xls</output>
+                <output name="Output2" deleteOnFailure="false">${WorkingDirectory}/Peaks/Macs_Peaks/${Test}_peaks.bed</output>
+                <output name="Output3" deleteOnFailure="false">${WorkingDirectory}/Peaks/Macs_Peaks/${Test}_model.r</output>
+                <output name="Output4" deleteOnFailure="false">${WorkingDirectory}/Peaks/Macs_Peaks/${Test}_negative_peaks.xls</output>
+            </outputs>
+    	<arguments>
+    	    <arg name="OutputName">${WorkingDirectory}/Peaks/Macs_Peaks/${Test}</arg>
+	    <arg name="TheDirectory">${WorkingDirectory}</arg>
+		<arg name="GenomeForMacs">${GM}</arg>
+		<arg name="Mfold">${MF}</arg>
+		<arg name="shiftSize">${SS}</arg>
+
+
+    	</arguments> 
+            
+	</task>
+
+	 <task name="AnnotatePeakProcess" type="AnnotatePeakProcess">
+       <depends>
+	     <task>MacsProcess</task>
+   	</depends> 
+       <resources>
+            <memory>4G</memory>
+        </resources>
+            <inputs>
+                <input name="Peaks">${WorkingDirectory}/Peaks/Macs_Peaks/${Test}_peaks.bed</input>
+            </inputs>
+
+            <outputs>
+              <output name="AnnotatedPeaks" deleteOnFailure="false">${WorkingDirectory}/Peaks/Macs_Peaks/${Test}_peaks_Annotated.xls</output>
+		<output name="SummaryAnnotation" deleteOnFailure="false">${WorkingDirectory}/Peaks/Macs_Peaks/${Test}_peaks_Annotated.summary</output>
+		<output name="EnrichmentFile" deleteOnFailure="false">${WorkingDirectory}/Peaks/Macs_Peaks/${Test}_GO_Results.txt</output>
+            </outputs>
+    	<arguments>
+	    <arg name="TheDirectory">${WorkingDirectory}</arg>
+	    <arg name="genome">${GT}</arg>
+    	</arguments> 
+            
+	</task>
+
+
+	 <task name="MacsFragmentImage" type="MacsFragmentImage">
+       <depends>
+	     <task>MacsProcess</task>
+   	</depends>
+        <resources>
+            <memory>2G</memory>
+        </resources>
+            <inputs>
+	         <input name="ModelScript" origin="dependency" dependency="MacsProcess" ref="Output3"/>
+            </inputs>
+
+            <outputs>
+                <output name="ModelImage" deleteOnFailure="false">${WorkingDirectory}/Peaks/Macs_Peaks/${Test}_model.pdf</output>
+            </outputs>
+            
+	</task>
+
+	     </subtasks>
+      </specialisationSet>
+
+
+    </tasks>
+</pipe:pipeline>

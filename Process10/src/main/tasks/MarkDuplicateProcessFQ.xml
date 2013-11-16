@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="ISO-8859-1" ?>
+<task:task xmlns:task="http://cancerresearchuk.org/workflow/task"
+           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+           xsi:schemaLocation="http://cancerresearchuk.org/workflow/task http://uk-cri-lbio01/schema/workflow/task-1.4.xsd">
+
+    <name>MarkDuplicateProcessFQ</name>
+    <description>Bam merging for ChIPseqPipeline.</description>
+
+    <program type="commandLine">
+        <executable>
+	${java} -Xmx4g -jar ${picard}/MarkDuplicates.jar INPUT=${FQDirectory}/${Test}_Rehead.bam ASSUME_SORTED=true OUTPUT=${bamDir}/${Test}.bwa.Realigned${GenomeBuild}.bam METRICS_FILE=${FQDirectory}/${Test}.bam.metrics VALIDATION_STRINGENCY=SILENT
+	rm ${FQDirectory}/${Test}.bam.metrics
+
+	</executable>
+    </program>
+	<inputs>
+		<input name="MergedFile"/>
+	</inputs>
+	
+    	<outputs>
+        	<output name="MarkedFile" required="true" safeNaming="false" description="MarkedFile by pipeline" />
+    	</outputs>
+
+    	<arguments>
+		<arg name="TheDirectory" required="true" description="Working directory"/>
+		<arg name="OutputName" required="true" description="The marked file"/>
+    		<arg name="GenomeBuild" required="true" description="The genome build"/>
+		<arg name="Test" required="true" description="Name for Macs output"/>
+		<arg name="java" required="true" description="java exec"/>
+		<arg name="picard" required="true" description="picard exec"/>
+		<arg name="FQDirectory" required="true" description="picard exec"/>
+		<arg name="bamDir" required="true" description="picard exec"/>		
+    	</arguments>
+
+</task:task>

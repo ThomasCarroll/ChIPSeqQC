@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="ISO-8859-1" ?>
+<pipe:pipeline xmlns:pipe="http://cancerresearchuk.org/pipeline/1.2"
+               xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+               xsi:schemaLocation="http://cancerresearchuk.org/pipeline/1.2 http://uk-cri-lsol03:8080/solexa/solexa01/schema/workflow/pipeline-1.2.xsd">
+
+    <name>FQFindingPipeline</name>
+    <description>Pipeline for getting Bam files for the ChIPseqPipeline.</description>
+
+    <tasks>
+        
+	 <task name="FQFinderProcess" type="FQFinderProcess">
+        <resources>
+            <memory>1G</memory>
+        </resources>
+    	<outputs>
+       	<output name="FQLocations">${TemporaryDirectory}/ActualFQLocations.txt</output>
+    	</outputs>
+
+    	<arguments>
+    	    <arg name="TempDir">${TemporaryDirectory}</arg>
+    	</arguments> 
+            
+	</task>
+	
+    </tasks>
+</pipe:pipeline>

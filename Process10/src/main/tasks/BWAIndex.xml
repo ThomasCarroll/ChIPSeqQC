@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="ISO-8859-1" ?>
+<task:task xmlns:task="http://cancerresearchuk.org/workflow/task"
+           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+           xsi:schemaLocation="http://cancerresearchuk.org/workflow/task http://uk-cri-lbio01/schema/workflow/task-1.4.xsd">
+
+
+    <name>BWAIndex</name>
+    <description>Bam processing for ChIPseqPipeline.</description>
+
+    <program type="commandLine">
+        <executable>
+	${bwa} index -a bwtsw ${Genome}
+	</executable>
+    </program>
+
+    <inputs>
+        <input name="Genome" required="true" description="The FQ file." />
+    </inputs>
+
+    <outputs>
+        <output name="GenomeBWAIndex" required="true" safeNaming="false" description="sai file from alignment by pipeline" />
+    </outputs>
+
+    <arguments>
+	<arg name="bwa" required="true" description="bwa exec"/>
+    </arguments>
+
+</task:task>

@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="ISO-8859-1" ?>
+<task:task xmlns:task="http://cancerresearchuk.org/workflow/task"
+           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+           xsi:schemaLocation="http://cancerresearchuk.org/workflow/task http://uk-cri-lbio01/schema/workflow/task-1.4.xsd">
+
+
+    <name>MacsProcess_CRI</name>
+    <description>Macs Peak Calling for ChIPseqPipeline.</description>
+
+    <program type="commandLine">
+        <executable>
+	mkdir -p ${Macs_Directory}
+	export PYTHONPATH=${pythonlibs}
+	${python} ${Macs_Executable} -t ${TestBam} -c ${ControlBam} -f BAM -g ${GenomeForMacs} -m ${Mfold} --shiftsize=${shiftSize} -n ${OutputName} 
+
+	</executable>
+    </program>
+
+    <inputs>
+        <input name="TestBam" required="true" description="The Bam file." />
+        <input name="ControlBam" required="true" description="genome." />
+    </inputs>
+	
+    <outputs>
+        <output name="Macs_PeaksFull" required="true" safeNaming="false" description="Wig processes by pipeline" />
+        <output name="Macs_PeaksBed" required="true" safeNaming="false" description="Wig processes by pipeline" />
+        <output name="Macs_Model" required="true" safeNaming="false" description="Wig processes by pipeline" />
+        <output name="Macs_PeaksInput" required="true" safeNaming="false" description="Wig processes by pipeline" />
+    </outputs>
+
+    <arguments>
+        <arg name="OutputName" required="true" description="Name for Macs output"/>
+	<arg name="GenomeForMacs" required="true" description="Genome for Macs output"/>
+	<arg name="Mfold" required="true" description="Mfold for Macs output"/>
+	<arg name="shiftSize" required="true" description="ShiftZie for Macs output"/>	
+	<arg name="Macs_Directory" required="true" description="Working Directory"/>
+	<arg name="Macs_Executable" required="true" description="Working Directory"/>
+	<arg name="pythonlibs" required="true" description="Working Directory"/>
+	<arg name="python" required="true" description="Working Directory"/>	
+    </arguments>
+
+</task:task>

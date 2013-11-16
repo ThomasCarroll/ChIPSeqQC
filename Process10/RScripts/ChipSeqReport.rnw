@@ -1,0 +1,636 @@
+\documentclass[12pt,a4paper]{article}
+\usepackage{/home/mib-cri/local/lib64/R/share/texmf/Sweave}
+
+
+\usepackage{indentfirst}
+
+\usepackage{fullpage}
+\usepackage{hyperref}
+\usepackage{color}
+\usepackage{times}
+\usepackage{ifthen}
+\SweaveOpts{echo=FALSE,results=hide,include=FALSE}
+
+
+
+<<setUpTitle>>=
+### Enter your name, e-mail and the project title below, or it will try and guess
+### REMEMBER LaTeX does not like underscores _ in text, so escape then e.g. title="10660902\_FarrinerT\_PL\_GFOL"
+#you can also add a .plan file if your finger file does not have your name in
+title = ""
+name = ""
+email = ""
+## If above are empty it will try and guess
+if (nchar(title)==0){
+title <- basename(getwd())
+title <- gsub("_"," ",title)}
+if (nchar(name)==0){
+name <- system("finger $(whoami) |perl -ne 'print \"$1\n\" if m/Name: (.*)/;'",intern=TRUE)}
+name <- name[length(name)]
+if (nchar(email)==0){
+email <- paste(sub(" ",".",name),"@cancer.org.uk",sep="")}
+@
+
+\begin{document}
+\title{\Sexpr{title}}
+\author{\Sexpr{name}\\
+\small{Cancer Resarch UK - Cambridge Research Institute - Bioinformatics Core}\\
+\texttt{\Sexpr{email}}}
+\date{Report Generated \today}
+\maketitle
+
+\section{Table of Contents}
+\tableofcontents
+
+<<loadLibraries>>=
+#Set cairo to be default graphics type for cluster use
+options(bitmapType="cairo")
+library(RColorBrewer)
+library(hwriter)
+library(xtable)
+library(gplots)
+library(ggplot2)
+library(reshape)  
+library(amap)
+
+
+# The following setting is important, do not omit. 
+options(stringsAsFactors = FALSE); 
+
+@
+
+<<customFunctions,cache=T>>=
+###Custom Functions
+
+WkgDir <- getwd()
+#WkgDir <- "/lustre/mib-cri/carrol09/Work/PipelinePracticeSet/20111109_RossAdams_DN_HNF1bChIP/"
+ss <- read.delim(file.path(WkgDir,"SampleSheet.csv"),sep=",",stringsAsFactors=F)
+TableOfNum <- ss[,c("GenomicsID","SampleName","Original","delRand","Excluded","Filtered","Unique","DuplicationRate")]
+TableOfNum <- TableOfNum[!TableOfNum[,3] %in% "No_Information_Available" ,]
+TableOfNum[,2] <- gsub("_",".",TableOfNum[,2])
+TableOfNum[,8] <- round(as.numeric(TableOfNum[,8]),1)
+
+BottomDup <-TableOfNum[order(as.numeric(TableOfNum[,8]),decreasing=F),1][1:5]  
+TopDup <-TableOfNum[order(as.numeric(TableOfNum[,8]),decreasing=T),1][1:5]
+Dup<- unique(c(BottomDup,TopDup))
+TableOfNum <- TableOfNum[TableOfNum[,1] %in% Dup,]
+TableToPlot <- TableOfNum
+
+TempMat <- t(data.matrix(TableToPlot[,c("Original","delRand","Excluded","Filtered","Unique")]))
+namesFoPlot <- TableToPlot[,1]
+TempTop <- rbind(TempMat[1,]-TempMat[2,],TempMat[2,]-TempMat[3,],TempMat[3,]-TempMat[4,],TempMat[4,]-TempMat[5,],TempMat[5,])[5:1,]
+
+
+
+#png(file.path(WkgDir,"ReadsPlot.png"),width=1000,height=1000)
+#par(mar=c(5, 10, 4, 2) + 0.1)
+#barplot(TempTop,names=namesFoPlot,horiz=T,las=1,legend.text=c("Pass Filter","Duplicated","MapQ < 15","Excluded Regions","Random_Contigs"),xlim=c(0,1.5*max(TempMat)))
+#dev.off()
+
+
+TempMat <- t(TempTop)
+rownames(TempMat) <- namesFoPlot
+colnames(TempMat) <- rev(c("Original","delRand","Excluded","Filtered","Unique"))
+
+
+ToPlotG <- melt(TempMat)
+colnames(ToPlotG) <- c("SampleID","Filter","Number_of_Reads")
+
+ToPlotG$Filter <- factor(ToPlotG$Filter, levels = rev(c("Original","delRand","Excluded","Filtered","Unique")))
+ToPlotG[,3] <- ToPlotG[,3]/1000000
+NewP <- ggplot(ToPlotG, aes(x=SampleID,y=Number_of_Reads,fill=Filter)) + geom_bar()+coord_flip() 
+ggsave(NewP,filename="ReadsPlot.png")
+
+#TableOfNum[,c("GenomicsID")] <- gsub("\\.*","",TableOfNum[,c("GenomicsID")])
+TableOfNum[,c("Original")] <- paste(round(as.numeric(TableOfNum[,c("Original")])/1000000,2),"M",sep="")
+TableOfNum[,c("delRand")] <- paste(round(as.numeric(TableOfNum[,c("delRand")])/1000000,2),"M",sep="")
+TableOfNum[,c("Excluded")] <- paste(round(as.numeric(TableOfNum[,c("Excluded")])/1000000,2),"M",sep="")
+TableOfNum[,c("Filtered")] <- paste(round(as.numeric(TableOfNum[,c("Filtered")])/1000000,2),"M",sep="")
+TableOfNum[,c("Unique")] <- paste(round(as.numeric(TableOfNum[,c("Unique")])/1000000,2),"M",sep="")
+colnames(TableOfNum) <- c("ID","Name","Total","Random Contigs","Excluded Regions","MapQ Filter","Unique","Duplication")
+TableToPrint <- xtable(TableOfNum,caption="Number of Reads after filtering steps",lab="tab:numReads",centering="L")
+
+
+OffHistFiles <- dir(path=file.path(WkgDir,"Peaks","PeakProfiles"),pattern="*AllOutSidePeaks.hist$",full.names=T)
+namesForGraph <- dir(path=file.path(WkgDir,"Peaks","PeakProfiles"),pattern="*AllOutSidePeaks.hist$",full.names=F)
+
+
+for(i in 1:length(OffHistFiles)){
+   DataIn <- read.delim(OffHistFiles[i],sep="\t")[,c(2,3)]
+   print(paste("Merging hist from ",OffHistFiles[i],sep=""))
+   if(i == 1){
+   BigFrame <- DataIn
+   }else{
+   BigFrame <- merge(BigFrame,DataIn,by=1,all=T)
+   }
+}
+
+OnHistFiles <- dir(path=file.path(WkgDir,"Peaks","PeakProfiles"),pattern="*AllInPeaks.hist$",full.names=T)
+namesForGraph2 <- dir(path=file.path(WkgDir,"Peaks","PeakProfiles"),pattern="*AllInPeaks.hist$",full.names=F)
+
+for(i in 1:length(OnHistFiles)){
+   DataIn <- read.delim(OnHistFiles[i],sep="\t")[,c(2,3)]
+   print(paste("Merging hist from ",OnHistFiles[i],sep=""))
+   if(i == 1){
+   BigFrame2 <- DataIn
+   }else{
+   BigFrame2 <- merge(BigFrame2,DataIn,by=1,all=T)
+   }
+}
+
+
+
+colnames(BigFrame) <-  c("Depth",namesForGraph)
+colnames(BigFrame2) <-  c("Depth",namesForGraph2)
+
+
+temp <- melt(BigFrame,id="Depth")
+temp2 <- melt(BigFrame2,id="Depth")
+temp <- cbind(temp,"Outside_peaks")
+temp2 <- cbind(temp2,"In_peaks")
+colnames(temp)[4] <- "Inside_Outside_Peaks"
+colnames(temp2)[4] <- "Inside_Outside_Peaks"
+
+longFrame <- rbind(temp,temp2)
+longFrame[,3] <- log2(longFrame[,3])
+longFrame[,2] <- gsub("_.*","",longFrame[,2])
+
+ggplot(longFrame,aes(x=Depth,y=value,col=variable,linetype=Inside_Outside_Peaks))+geom_smooth()+ylab("Log2 Base-Pairs")
+ggsave(file=file.path(WkgDir,"Peaks","PeakProfiles","OnAndOffPeakCoverage.png"))
+
+ss <- read.delim("SampleSheet.csv",sep=",",header=T,stringsAsFactors=F)
+Tempss <- ss[,c("GenomicsID","Filtered")]
+
+OnHistFiles <- dir(path=file.path(WkgDir,"Peaks","PeakProfiles"),pattern="*MergedCounts.bed$",full.names=T)
+namesForGraph <- gsub("_MergedCounts.bed","",dir(path=file.path(WkgDir,"Peaks","PeakProfiles"),pattern="*MergedCounts.bed$",full.names=F))
+
+TotalRatio  <- vector("numeric",length=length(OffHistFiles))
+Total  <- vector("numeric",length=length(OffHistFiles))
+TotalOn  <- vector("numeric",length=length(OffHistFiles))
+TotalOff <-  vector("numeric",length=length(OffHistFiles))
+TotalOnPercent  <- vector("numeric",length=length(OffHistFiles))
+TotalOffPercent <- vector("numeric",length=length(OffHistFiles))
+
+for(i in 1:length(OnHistFiles)){
+	TempCount <- read.delim(OnHistFiles[i],sep="\t",header=F)	
+	Total[i] <- as.numeric(ss[ss[,c("GenomicsID")] %in% namesForGraph[i],c("Filtered")])
+	TotalOn[i] <- sum(TempCount[,4])
+	TotalOff[i] <- Total[i]-TotalOn[i]
+	TotalRatio[i] <- TotalOn[i]/TotalOff[i]
+	TotalOnPercent[i] <- TotalOn[i]/Total[i]
+	TotalOffPercent[i] <- TotalOff[i]/Total[i]
+}
+
+
+
+names(TotalRatio) <- namesForGraph
+png(file.path(WkgDir,"Peaks","PeakProfiles","Plot__of__In_Peak__to__Outside_Peak__Ratios.png"))
+par(mar=c(10, 4, 4, 4) + 0.1)
+plot(TotalRatio,main="Plot of Off_Target to On_Target Ratios",pch=20,cex=4,xlab="",ylab="On_Target/Off_Target Reads")
+axis(1,at=1:length(TotalRatio),labels=gsub("_off.*","",names(TotalRatio)),las=2)
+dev.off()
+
+png(file.path(WkgDir,"Peaks","PeakProfiles","BarPlot__of__In_Peak__to__Outside_Peak__Percentages.png"))
+par(mar=c(10, 4, 4, 4) + 0.1)
+barplot(rbind(TotalOnPercent*100,TotalOffPercent*100),beside=F,main="Plot of Off_Target to On_Target Percentages",names.arg=gsub("_off.*","",namesForGraph),xlab="",ylab="Percent Reads",col=c("green","grey"),las=2,ylim=c(0,180),legend=c("On_Target","Off_Target"))
+dev.off()
+
+png(file.path(WkgDir,"Peaks","PeakProfiles","BarPlot__of__In_Peak__to__Outside_Peak__Reads.png"))
+par(mar=c(10, 8, 4, 4) + 0.1)
+barplot(rbind(TotalOn/1000000,TotalOff/1000000),beside=T,main="Plot of Off_Target to On_Target Reads",names.arg=gsub("_off.*","",namesForGraph),xlab="",ylab="Total Reads\n(Millions)",col=c("green","grey"),las=2,legend=c("On_Target","Off_Target"),args.legend = list(x = "topleft"))
+dev.off()
+
+
+PosCountFiles <- dir(path=file.path(WkgDir,"Peaks","PeakProfiles"),pattern="*CountsByPos.bed$",full.names=T)
+NegCountFiles <- dir(path=file.path(WkgDir,"Peaks","PeakProfiles"),pattern="*CountsByNeg.bed$",full.names=T)
+namesForGraph <- gsub("_CountsByPos.bed","",dir(path=file.path(WkgDir,"Peaks","PeakProfiles"),pattern="*CountsByPos.bed$",full.names=F))
+
+ratios <- vector("list",length=length(namesForGraph))
+for(i in 1:length(namesForGraph)){
+	PosFile <- PosCountFiles[grep(namesForGraph[i],PosCountFiles)]
+	NegFile <- NegCountFiles[grep(namesForGraph[i],NegCountFiles)]
+	CountForPos <- read.delim(PosFile,sep="\t",h=F)
+	CountForNeg <- read.delim(NegFile,sep="\t",h=F)
+	Total <- merge(CountForPos,CountForNeg[,c(4,6)],by.x=4,by.y=1,all=T)
+	Total <- cbind(Total,log2(Total[,6]+Total[,7]),log2(Total[,6]/Total[,7]))
+	ratios[[i]] <- Total[,9]
+	png(file.path(WkgDir,"Peaks","PeakProfiles",paste(namesForGraph[i],"Ratio_Of_PerStrand_CountsVsTotalCounts.png",sep="")))
+	plot(Total[,8],Total[,9],ylab="Log2 Ratio Of Reads from Strands",xlab="Log2 Total Reads")
+	dev.off()
+}
+png(file.path(WkgDir,"Peaks","PeakProfiles","BoxplotOfRatios.png"))
+boxplot(ratios,names=namesForGraph)
+dev.off()
+
+GCFiles <- dir(path=file.path(WkgDir,"Peaks","PeakProfiles"),pattern="*GC.txt$",full.names=T)
+CountFiles <- dir(path=file.path(WkgDir,"Peaks","PeakProfiles"),pattern="*_Counts.bed$",full.names=T)
+namesForGraph <- gsub("_GC.txt","",dir(path=file.path(WkgDir,"Peaks","PeakProfiles"),pattern="*GC.txt$",full.names=F))
+GCScores <- vector("list",length=length(namesForGraph))
+for(i in 1:length(GCScores)){
+	GCData <- read.delim(GCFiles[i],sep="\t",h=T)
+	CountFile <- CountFiles[grep(namesForGraph[i],CountFiles)]
+	CountData <- read.delim(CountFile,sep="\t",h=F)
+	GCScores[[i]] <- GCData[,7]
+	TotalGC <- as.numeric(ss[ss[,c("GenomicsID")] %in% namesForGraph,c("Filtered")])
+	GCandCounts <- merge(GCData,CountData[,c(4,6)],by.x=4,by.y=1,all=T)
+	GCandCounts <- cbind(GCandCounts,(((((GCandCounts[,16])/(GCandCounts[,14]))*1000)/TotalGC)*1000000))
+	png(file.path(WkgDir,"Peaks","PeakProfiles",paste(namesForGraph[i],"RPKM_Of_PeaksVsGCOfPeaks.png",sep="")))
+	smoothScatter(GCandCounts[,7]*100,GCandCounts[,17],xlab="GC Content",ylab="RPKM")
+	dev.off()	
+}
+png(file=file.path(WkgDir,"Peaks","PeakProfiles","GC_Content_Boxplot.png"))
+
+
+boxplot(GCScores)
+
+dev.off()
+
+ss <- read.delim(file.path(WkgDir,"SampleSheet.csv"),sep=",",stringsAsFactors=F)
+TSSProfilesFiles <- dir(file.path(WkgDir,"Coverage"),pattern="*Processed.RData",full.names=T)
+TSSAverageMat <-  matrix(nrow=length(TSSProfilesFiles),ncol=5001)
+namesForMat <- vector("character",length=length(TSSProfilesFiles))
+ReadAmountsForMat <- vector("numeric",length=length(TSSProfilesFiles))
+FileNames <- gsub(".*TSS_AvCov_","",gsub(".bwa.*","",TSSProfilesFiles))
+print(FileNames)
+print(TSSProfilesFiles)
+for(i in 1:length(TSSProfilesFiles)){
+namesForMat[i]  <- ss[ss[,1] %in% FileNames[i],"SampleName"]
+ReadAmountsForMat[i]  <- ss[ss[,1] %in% FileNames[i],"Filtered"]
+load(TSSProfilesFiles[i])
+TSSAverageMat[i,] <- TempColMeans#/as.numeric(ReadAmountsForMat[i])
+TSSAverageMat[i,] <- TSSAverageMat[i,]/as.numeric(ReadAmountsForMat[i])
+rm(TempColMeans)
+}
+rownames(TSSAverageMat) <- namesForMat 
+
+Position <-  1000-5000:0
+BigFrame <- cbind(Position,t(TSSAverageMat))
+temp <- melt(as.data.frame(BigFrame),id.vars=c("Position"))
+
+#p <- ggplot(temp,aes(x=Position,y=value,col=variable))+stat_smooth(se = FALSE)
+#save(p,file=file.path(WkgDir,"Coverage","AverageTSSPlot.RData"))
+#ggsave(p,file=file.path(WkgDir,"Coverage","AverageTSSPlot.png"))
+
+
+for(i in 1:length(unique(temp[,2]))){
+png(file.path(getwd(),"Coverage",paste((unique(temp[,2])[i]),".png",sep="")),width=2000,height=750)
+  plot(temp[temp[,2] %in% unique(temp[,2])[i],1],temp[temp[,2] %in% unique(temp[,2])[i],3],type="l",xlab="Position relative to TSS",ylab="Normalised Coverage")
+dev.off()
+}
+
+library(Hmisc)
+Maxes <- Hmisc:::summarize(temp[,3],by=temp[,2],max)
+OrderedMaxes <- Maxes[order(Maxes[,2],decreasing=T),]
+Top2 <- as.vector(OrderedMaxes[1:3,1])
+OrderedMaxes <- Maxes[order(Maxes[,2],decreasing=F),]
+Bottom2 <- as.vector(OrderedMaxes[1:3,1])
+ToShow <-  unique(c(Top2,Bottom2))
+
+
+colToUse <- sample(colours(),length(unique(ToShow)))
+png(file.path(getwd(),"Coverage",paste("AverageTSSPlot",".png",sep="")),width=2000,height=750)
+plot(temp[,1],temp[,3],type="n",xlab="Position relative to TSS",ylab="Normalised Coverage")
+for(i in 1:length(ToShow)){
+lines(temp[temp[,2] %in% ToShow[i],1],temp[temp[,2] %in% ToShow[i],3],col=colToUse[i])
+}
+legend("topleft",legend=ToShow,fill=colToUse)
+dev.off()
+
+
+
+
+#if(length(grep("MacsPeaks",colnames(ss)))>0){
+MacsTable <- ss[,c("SampleName","MacsPeaks","Macs_Genes_In_Peaks","Macs_Peaks_In_Genes")]
+MacsTable <- MacsTable[!is.na(MacsTable[,2]),]
+MacsTable[,1] <- gsub("_",".",MacsTable[,1])
+#ToPrintMacs <- matrix(MacsTable[,2],ncol=1)
+#rownames(ToPrintMacs) <- MacsTable[,1]
+TableToPrint2 <- xtable(MacsTable,caption="Summary of sample peaks and gene annotation for peaks")
+#}
+
+#if(length(grep("SicerPeaks",colnames(ss)))>0){
+SicerTable <- ss[,c("SampleName","SicerPeaks")]
+SicerTable <- SicerTable[!is.na(SicerTable[,2]),]
+SicerTable[,1] <- gsub("_",".",SicerTable[,1])
+#ToPrintMacs <- matrix(SicerTable[,2],ncol=1)
+#rownames(ToPrintMacs) <- SicerTable[,1]
+TableToPrint3 <- xtable(SicerTable,caption="Summary of sample peaks and gene annotation for peaks")
+#}
+
+#if(length(grep("TPICSPeaks",colnames(ss)))>0){
+TPICSTable <- ss[,c("SampleName","TPICsPeaks")]
+TPICSTable <- TPICSTable[!is.na(TPICSTable[,2]),]
+TPICSTable[,1] <- gsub("_",".",TPICSTable[,1])
+#ToPrintMacs <- matrix(TPICSTable[,2],ncol=1)
+#rownames(ToPrintMacs) <- TPICSTable[,1]
+TableToPrint4 <- xtable(TPICSTable,caption="Summary of sample peaks and gene annotation for peaks")
+#}
+
+CoverageResults <- dir(path=file.path(WkgDir,"Fragment_Lengths"),pattern="*.FragCovLog",full.names=T)
+CovNames <- gsub("/.*/","",gsub("_Processed.FragCovLog","",CoverageResults ))
+for(i in 1:length(CoverageResults)){
+	if(i == 1){
+		CovFrame <- read.delim(CoverageResults[i],sep=" ",header=F)
+	}
+	if(i > 1){
+		CovFrameTemp <- read.delim(CoverageResults[i],sep=" ",header=F)
+		CovFrame <- merge(CovFrame,CovFrameTemp,by=1,all=T)
+	}
+
+}
+colnames(CovFrame) <- c("Shift_Size",CovNames)
+temp <- melt(as.data.frame(CovFrame),id.vars=c("Shift_Size"))
+#png("CoverageShiftSizes.png",width=1000,height=1000)
+P <- ggplot(temp,aes(x=Shift_Size,y=value,col=variable))+geom_line()+xlim(0,300)+ylab("Proportion of Bases Covered")
+#dev.off()
+Mins <- vector("numeric",length=(ncol(CovFrame)-1))
+for(i in 1:(ncol(CovFrame)-1)){
+	Mins[i] <- CovFrame[which.min(CovFrame[,i+1]),1]
+}
+#P = P+geom_vline(xintercept = Mins,colours=Mins)
+ggsave(P,filename="FragmentLengthPlot.png")
+
+
+
+##Motif Stuff
+
+#if(length(grep("Known_Significant_Motifs",colnames(ss)))>0){
+KnownMotifTable <- ss[,c("SampleName","Known_Significant_Motifs")]
+KnownMotifTable <- KnownMotifTable[!is.na(KnownMotifTable[,2]),]
+KnownMotifTable[,1] <- gsub("_",".",KnownMotifTable[,1])
+#ToPrintMacs <- matrix(TPICSTable[,2],ncol=1)
+#rownames(ToPrintMacs) <- TPICSTable[,1]
+KnownMotifTable <- xtable(KnownMotifTable,caption="Summary of Known Motifs significantly enriched under Macs peaks")
+
+
+#if(length(grep("Dreme_Significant_Motifs",colnames(ss)))>0){
+DremeMotifTable <- ss[,c("SampleName","Dreme_Significant_Motifs","Dreme_Significant_Motifs_Matched_To_Known")]
+DremeMotifTable <- DremeMotifTable[!is.na(DremeMotifTable[,2]),]
+DremeMotifTable[,1] <- gsub("_",".",DremeMotifTable[,1])
+#ToPrintMacs <- matrix(TPICSTable[,2],ncol=1)
+#rownames(ToPrintMacs) <- TPICSTable[,1]
+DremeMotifTable <- xtable(DremeMotifTable,caption="Summary of Denovo Motifs identified by Dreme under Macs peaks")
+
+
+#if(length(grep("meme_Significant_Motifs",colnames(ss)))>0){
+memeMotifTable <- ss[,c("SampleName","meme_Significant_Motifs","meme_Significant_Motifs_Matched_To_Known")]
+memeMotifTable <- memeMotifTable[!is.na(memeMotifTable[,2]),]
+memeMotifTable[,1] <- gsub("_",".",memeMotifTable[,1])
+#ToPrintMacs <- matrix(TPICSTable[,2],ncol=1)
+#rownames(ToPrintMacs) <- TPICSTable[,1]
+memeMotifTable <- xtable(memeMotifTable,caption="Summary of Denovo Motifs identified by meme under Macs peaks")
+
+DenovoDreme <- read.delim(file.path(WkgDir,"Motif","Summary_Significance_Table_Dreme_Denovo_Motifs.txt"),sep=",",stringsAsFactors=F)
+DenovoDreme <- DenovoDreme[order(DenovoDreme[,17],DenovoDreme[,5],decreasing=F),]
+Top2 <- unique(DenovoDreme[,2])[1:2]
+TempNovo <- DenovoDreme[match(Top2,DenovoDreme[,2]),c(5,13,2,1)]
+ToFindMotifPic <- paste(TempNovo[,1],"_1_",TempNovo[,2],TempNovo[,3],sep="")
+
+Pic1Location <- dir(file.path(WkgDir,"Motif",TempNovo[1,4],"Denovo","dreme_tomtom_out"),full.names=T,pattern="*.png")
+MotifPic_1 <- Pic1Location[grep(gsub("\\+","",ToFindMotifPic[1]),gsub("\\+","",Pic1Location))]
+system(paste("cp",MotifPic_1,file.path(WkgDir,"MotifExample1.png"),sep=" "))
+Pic2Location <- dir(file.path(WkgDir,"Motif",TempNovo[2,4],"Denovo","dreme_tomtom_out"),full.names=T,pattern="*.png")
+MotifPic_2 <- Pic2Location[grep(gsub("\\+","",ToFindMotifPic[2]),gsub("\\+","",Pic2Location))]
+system(paste("cp",MotifPic_2,file.path(WkgDir,"MotifExample2.png"),sep=" "))
+
+
+Histfiles <- dir(path=file.path(WkgDir,"Coverage"),pattern="*.hist",full.names=T)
+forPic <- gsub("_Processed.hist","",dir(path=file.path(WkgDir,"Coverage"),pattern="*.hist"))
+for (i in 1:length(Histfiles)){
+  if(i == 1){
+      TempIn <- read.delim(Histfiles[i],sep="\t",header=F)
+      GenomeCov <- TempIn[TempIn[,1] %in% "genome",]
+      ToMerge <- cbind(GenomeCov[,2],log10(GenomeCov[,3]))
+  }
+  if(i > 1){
+      TempIn <- read.delim(Histfiles[i],sep="\t",header=F)
+      GenomeCov <- TempIn[TempIn[,1] %in% "genome",]
+      ToMerge2 <- cbind(GenomeCov[,2],log10(GenomeCov[,3]))
+      ToMerge <- merge(ToMerge,ToMerge2,by=1,all=T)
+  }
+}
+colnames(ToMerge) <- c("Depth",forPic)
+PlottingCov <- melt(as.data.frame(ToMerge),id.vars=c("Depth"))
+P <- ggplot(PlottingCov,aes(x=Depth,y=value,col=variable))+geom_line()+ylab("Log2 Base Pairs")
+ggsave(P,filename="CoveragePlot.png")
+
+GetInputs <- ss[,"InputToUse"]
+InputSSDs <- ss[ss[,"SampleName"] %in% unique(ss[,"InputToUse"]),"SSD_Of_Coverage"]
+sampleSSDs <- ss[!ss[,"SampleName"] %in% unique(ss[,"InputToUse"]),"SSD_Of_Coverage"]
+
+Inputginis <- ss[ss[,"SampleName"] %in% unique(ss[,"InputToUse"]),"Gini_Of_Coverage"]
+sampleginis <- ss[!ss[,"SampleName"] %in% unique(ss[,"InputToUse"]),"Gini_Of_Coverage"]
+
+
+InputAginis <- ss[ss[,"SampleName"] %in% unique(ss[,"InputToUse"]),"adjusted_Gini_Of_Coverage"]
+sampleAginis <- ss[!ss[,"SampleName"] %in% unique(ss[,"InputToUse"]),"adjusted_Gini_Of_Coverage"]
+png("Dispersion.png")
+boxplot(InputSSDs,sampleSSDs,names=c("Inputs","Samples"),ylab="SSD")
+dev.off()
+@
+
+<<customFunctions2,cache=T>>=
+###Custom Functions
+
+make_png <- function (file_name){
+#Just a quick function to make pngs, they you can globally set the image size and options
+  png(file_name,width=as.numeric(500),height=as.numeric(500),type = "cairo")
+}
+@ 
+
+
+
+\section{Introduction}
+
+\subsection{Description}
+
+ChIP-sequencing tecnologies combine massively parralell DNA sequencing and chromatin immunoprecipitation to identify protein/DNA interactions and epigenetic states..
+
+
+\noindent
+\vspace{5 mm}
+
+\section{Quality Assessment and Genomic Distributions Of Reads}
+
+\noindent
+This report provides a summary of quality assessment for 
+<<readsTable,results=tex>>==
+print(TableToPrint,include.rownames=F)
+@
+\begin{figure}[h]
+\begin{center}
+\includegraphics[]{ReadsPlot.png}
+\caption{Log2 of Number Base Pairs at Differing Read Depths}
+\label{fig:ReadsPlot}
+\end{center}
+\end{figure} 
+
+
+
+\vspace{5 mm}
+
+\begin{figure}[h]
+\begin{center}
+\includegraphics[]{CoveragePlot.png}
+\caption{Log2 of Number Base Pairs at Differing Read Depths}
+\label{fig:DepthPlot}
+\end{center}
+\end{figure} 
+
+\vspace{5 mm}
+
+\begin{figure}[h]
+\begin{center}
+\includegraphics[]{Dispersion.png}
+\caption{Log2 of Number Base Pairs at Differing Read Depths}
+\label{fig:DepthPlot}
+\end{center}
+\end{figure} 
+
+\vspace{5 mm}
+
+
+\begin{figure}[h]
+\begin{center}
+\includegraphics[]{Coverage/AverageTSSPlot.png}
+\caption{Log2 of Number Base Pairs at Differing Read Depths}
+\label{fig:DepthPlot}
+\end{center}
+\end{figure} 
+
+@
+
+\section{Fragment Lengths and Coverage}
+
+\begin{figure}[h]
+\begin{center}
+\includegraphics[]{FragmentLengthPlot.png}
+\caption{Plot of proportion of bases covered per sample following consecutive shifts of read positions}
+\label{fig:ShiftSizes}
+\end{center}
+\end{figure} 
+
+@
+\vspace{5 mm}
+\section{Peaks and Enriched Genomic Locations}
+
+\subsection{Macs Peaks}
+\noindent
+<<TPICSTable,results=tex>>==
+print(TableToPrint2,include.rownames=F)
+@
+
+
+\begin{figure}[h]
+\begin{center}
+\includegraphics[]{FragmentLengthPlot.png}
+\caption{Plot of proportion of bases covered per sample following consecutive shifts of read positions}
+\label{fig:ShiftSizes}
+\end{center}
+\end{figure} 
+
+
+\begin{figure}[h]
+\begin{center}
+\includegraphics[]{Peaks/PeakProfiles/OnAndOffPeakCoverage.png}
+\caption{Plot of log2 bases at read depths within and outside peaks}
+\label{fig:ShiftSizes}
+\end{center}
+\end{figure} 
+
+\begin{figure}[h]
+\begin{center}
+\includegraphics[]{Peaks/PeakProfiles/BarPlot__of__In_Peak__to__Outside_Peak__Reads.png}
+\caption{Plot of number of reads within and outside peaks}
+\label{fig:ShiftSizes}
+\end{center}
+\end{figure} 
+
+\begin{figure}[h]
+\begin{center}
+\includegraphics[]{Peaks/PeakProfiles/BarPlot__of__In_Peak__to__Outside_Peak__Percentages.png}
+\caption{Plot of percentage of reads within and outside peaks}
+\label{fig:ShiftSizes}
+\end{center}
+\end{figure} 
+
+\begin{figure}[h]
+\begin{center}
+\includegraphics[]{Peaks/PeakProfiles/ExampleStrandBiasPlot.png}
+\caption{Plot of reads within peaks versus log2 ratio of reads from positive or negative strands}
+\label{fig:ShiftSizes}
+\end{center}
+\end{figure} 
+
+
+\begin{figure}[h]
+\begin{center}
+\includegraphics[]{Peaks/PeakProfiles/ExampleGCPlot.png}
+\caption{Plot of GC content of peaksreads within peaks versus number of RPK of peaks}
+\label{fig:ShiftSizes}
+\end{center}
+\end{figure} 
+
+\begin{figure}[h]
+\begin{center}
+\includegraphics[]{Peaks/PeakProfiles/GC_Content_Boxplot.png}
+\caption{Boxplot of GC contents of peaks per sample}
+\label{fig:ShiftSizes}
+\end{center}
+\end{figure} 
+
+
+\subsection{KnownMotifs}
+\noindent
+<<KnownMotifsTable,results=tex>>==
+print(KnownMotifTable,include.rownames=F)
+@
+
+\subsection{Dreme\_DenoNovo\_Motifs}
+\noindent
+<<DremeMotifsTable,results=tex>>==
+print(DremeMotifTable,include.rownames=F)
+@
+
+\section{MotifImage1}
+\begin{figure}[h]
+\begin{center}
+\includegraphics[]{MotifExample1.png}
+\caption{Example Motif 1}
+\label{fig:Motif 1}
+\end{center}
+\end{figure} 
+@
+\section{MotifImage2}
+\begin{figure}[h]
+\begin{center}
+\includegraphics[]{MotifExample2.png}
+\caption{Example Motif 2}
+\label{fig:Motif 2}
+\end{center}
+\end{figure} 
+
+
+
+@
+
+\subsection{Meme\_DenoNovo\_Motifs}
+\noindent
+<<MemeMotifsTable,results=tex>>==
+print(memeMotifTable,include.rownames=F)
+@
+
+\subsection{Sicer Peaks}
+\noindent
+<<TPICSTable,results=tex>>==
+print(TableToPrint3,include.rownames=F)
+@
+
+\subsection{TPICS Peaks}
+\noindent
+<<tpicsTable,results=tex>>==
+print(TableToPrint4,include.rownames=F)
+@
+
+
+\end{document}

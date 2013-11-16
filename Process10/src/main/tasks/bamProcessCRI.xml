@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="ISO-8859-1" ?>
+<task:task xmlns:task="http://cancerresearchuk.org/workflow/task"
+           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+           xsi:schemaLocation="http://cancerresearchuk.org/workflow/task http://uk-cri-lbio01/schema/workflow/task-1.4.xsd">
+
+    <name>bamProcessCRI</name>
+    <description>Bam processing for ChIPseqPipeline.</description>
+
+    <program type="commandLine">
+        <executable>
+	export PYTHONPATH=${pythonlibs}
+	mkdir -p ${TheDirectory}/Coverage
+	${python} ${pipelineBase}/PythonScripts/CRI_BamProcess.py ${bam} ${genome} ${excludedfile} ${seqdict} ${ExcludedFlag} ${DupFlag} ${MapQFlag}
+	</executable>
+    </program>
+
+    <inputs>
+        <input name="bam" required="true" description="The Bam file." />
+        <input name="seqdict" required="true" description="The sequence dictionary file." />
+    </inputs>
+
+    <outputs>
+        <output name="bam_processed" required="true" safeNaming="false" description="Bam processes by pipeline" />
+        <output name="bam_counted" required="true" safeNaming="false" description="Counts of reads under differeing conditions" />
+    </outputs>
+
+    <arguments>
+	<arg name="TheDirectory" required="true" description="Working Directory"/>
+	<arg name="excludedfile" required="true" description="The excluded bed file."/>
+	<arg name="genome" required="true" description="Genome"/>
+	<arg name="ExcludedFlag" required="true" description="Excluded Flag"/>
+	<arg name="DupFlag" required="true" description="Duplication Flag"/>
+	<arg name="MapQFlag" required="true" description="MapQ Flag"/>
+	<arg name="python" required="true" description="python executable"/>
+	<arg name="pipelineBase" required="true" description="pipeline base"/>
+	<arg name="pythonlibs" required="true" description="pipeline base"/>
+    </arguments>
+
+</task:task>

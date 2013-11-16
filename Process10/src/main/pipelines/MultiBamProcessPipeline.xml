@@ -1,0 +1,440 @@
+<?xml version="1.0" encoding="ISO-8859-1" ?>
+<pipe:pipeline xmlns:pipe="http://cancerresearchuk.org/pipeline/1.2"
+               xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+               xsi:schemaLocation="http://cancerresearchuk.org/pipeline/1.2 http://uk-cri-lsol03:8080/solexa/solexa01/schema/workflow/pipeline-1.2.xsd">
+
+    <name>ChipBamProcess Pipeline</name>
+    <description>Pipeline for generating Bam files processed for the ChIPseqPipeline.</description>
+
+    <tasks>
+        
+        <foreach name="MultiBamProcess" type="MultiBamProcess" loopInput="bam" runAlways="true" >
+            
+            
+            <inputs>
+                <input name="bam">${BamDirectory}/${fileName}.bam</input>
+                <input name="genome">${genomeFile}</input>
+            </inputs>
+
+            <outputs>
+                <output name="bam_processeds" deleteOnFailure="false" patternType="regex">${BamDirectory}/(.+)_Processed.bam</output>
+                <output name="bam_counteds" deleteOnFailure="false" patternType="regex">${BamDirectory}/(.+)_fileLog.log</output>
+            </outputs>
+
+
+           
+           
+           <subtasks>
+        
+        
+        
+        	<task name="BamProcess" type="BamProcess">
+                    <resources>
+                        <memory>4G</memory>
+                    </resources>
+                
+                    <inputs>
+                        <input name="bam" origin="inherited"/>
+                    </inputs>
+
+                    <outputs>
+                        <output name="bam_processed">${BamDirectory}/${fileName}_Processed.bam</output>
+                        <output name="bam_counted">${BamDirectory}/${fileName}_fileLog.log</output>
+                    </outputs>
+
+	<arguments>
+    	    <arg name="TheDirectory">${WorkingDirectory}</arg>
+    	</arguments> 
+                </task>
+
+                 
+            </subtasks>
+            
+            <variables>
+                <var name="fileName" pattern=".+(?&lt;!_Processed)"/>
+            </variables>
+        
+        </foreach>
+    
+
+
+     
+     <foreach name="MultiWigProcess" type="MultiWigProcess" loopInput="bam_Proc" runAlways="true" >
+       <depends>
+	     <task>MultiBamProcess</task>
+   	</depends>
+            
+            <inputs>
+                <input name="bam_Proc">${BamDirectory}/${fileName}_Processed.bam</input>
+                <input name="genome">${genomeFile}</input>
+            </inputs>
+
+            <outputs>
+                <output name="Histograms" deleteOnFailure="false" patternType="regex">${WorkingDirectory}/Coverage/(.+).hist</output>
+                <output name="Wigs" deleteOnFailure="false" patternType="regex">${WorkingDirectory}/Coverage/(.+).wig</output>
+		<output name="BigBeds" deleteOnFailure="false" patternType="regex">${WorkingDirectory}/Coverage/(.+).bw</output>
+            </outputs>
+
+
+           
+           
+           <subtasks>
+        
+                
+		<task name="WigProcess" type="WigProcess">                  
+                    <resources>
+                        <memory>4G</memory>
+                    </resources>
+                    
+                
+                    <inputs>
+                        <input name="bam_Proc" origin="inherited"/>
+                        <input name="genome" origin="inherited"/>
+                    </inputs>
+
+                    <outputs>
+                        <output name="Wig">${WorkingDirectory}/Coverage/${fileName}.wig</output>
+                    </outputs>
+
+	<arguments>
+    	    <arg name="TheDirectory">${WorkingDirectory}</arg>
+    	</arguments> 
+
+                </task>
+        
+        	<task name="WigHistogram" type="WigHistogram">
+	                    <resources>
+	                        <memory>4G</memory>
+	                    </resources>
+	                   
+	                    <inputs>
+                        	<input name="bam_Proc" origin="inherited"/>
+	                     <input name="genome" origin="inherited"/>
+	                    </inputs>
+	
+	                    <outputs>
+	                        <output name="Histogram">${WorkingDirectory}/Coverage/${fileName}.hist</output>
+	                    </outputs>
+
+	<arguments>
+    	    <arg name="TheDirectory">${WorkingDirectory}</arg>
+    	</arguments> 
+
+	                </task>
+                
+        
+        
+        
+	        <task name="BigWigProcess" type="BigWigProcess">
+	        <depends>
+		     <task>WigProcess</task>
+	   	</depends>
+	           <resources>
+	               <memory>4G</memory>
+	           </resources>
+	                    
+	           <inputs>
+	              <input name="Wig" origin="dependency" dependency="WigProcess" ref="Wig"/>
+			<input name="genome" origin="inherited"/>
+	           </inputs>
+	    
+	           <outputs>
+	               <output name="BigBed">${WorkingDirectory}/Coverage/${fileName}.bw</output>
+	           </outputs>
+
+	<arguments>
+    	    <arg name="TheDirectory">${WorkingDirectory}</arg>
+    	</arguments> 
+
+	        </task>
+
+            </subtasks>
+            
+            <variables>
+                <var name="fileName" pattern=".+(?&lt;!_Processed)"/>
+            </variables>
+        
+        </foreach>
+
+
+
+     <foreach name="MultiFragEstimate" type="MultiFragEstimate" loopInput="bam_Proc" runAlways="true" >
+       <depends>
+	     <task>MultiBamProcess</task>
+   	</depends>
+ 	           <resources>
+	               <memory>8G</memory>
+	           </resources>
+           
+            <inputs>
+                <input name="bam_Proc">${BamDirectory}/${fileName}_Processed.bam</input>
+            </inputs>
+
+            <outputs>
+                <output name="FragLens" deleteOnFailure="false" patternType="regex">${WorkingDirectory}/Fragment_Lengths/(.+)_Processed.AllFragLog</output>
+            </outputs>
+
+           <subtasks>
+       	        <task name="FragEstimate" type="FragEstimate">
+
+			<resources>
+	              	<memory>8G</memory>
+			</resources>
+  			      <inputs>
+                        		<input name="bam_Proc" origin="inherited"/>
+	                    </inputs>
+	
+	                    <outputs>
+	                        <output name="FragLen">${WorkingDirectory}/Fragment_Lengths/${fileName}_Processed.AllFragLog</output>
+	                    </outputs>
+				
+				<arguments>
+			    	    <arg name="TheDirectory">${WorkingDirectory}</arg>
+				</arguments> 
+			
+	        </task>
+
+            </subtasks>
+            
+            <variables>
+                <var name="fileName" pattern=".+(?&lt;!_Processed)"/>
+            </variables>
+        
+        </foreach>
+
+
+   <!--  <foreach name="MultiCorFragEstimate" type="MultiCorFragEstimate" loopInput="bed_Proc" runAlways="true" >
+       <depends>
+	     <task>MultiBamProcess</task>
+   	</depends>
+ 	           <resources>
+	               <memory>4G</memory>
+	           </resources>
+           
+            <inputs>
+                <input name="bed_Proc">${BamDirectory}/${fileName}_Processed.bed</input>
+            </inputs>
+
+            <outputs>
+                <output name="FragCorLens" deleteOnFailure="false" patternType="regex">${SicerDirectory}/(.+)_Processed-chr1-tag-correlation.txt</output>
+            </outputs>
+
+           <subtasks>
+       	        <task name="CorFragEstimate" type="CorFragEstimate">
+
+			<resources>
+	              	<memory>8G</memory>
+			</resources>
+  			      <inputs>
+                        		<input name="bed_Proc" origin="inherited"/>
+	                    </inputs>
+	
+	                    <outputs>
+	                        <output name="CorFragLen">${SicerDirectory}/${fileName}/${fileName}_Processed-chr1-tag-correlation.txt</output>
+	                    </outputs>
+				
+				<arguments>
+					<arg name="SicerDirectory">${WorkingDirectory}/Peaks/Sicer_Peaks/${fileName}_Processed</arg>
+					<arg name="SampleName">${fileName}</arg>
+				</arguments> 
+			
+	        </task>
+
+            </subtasks>
+            
+            <variables>
+                <var name="fileName" pattern=".+(?&lt;!_Processed)"/>
+            </variables>
+        
+        </foreach>
+
+-->
+
+
+
+	<task name="OrganiseFragStats" type="OrganiseFragStats">
+     	<depends>
+		<task>MultiFragEstimate</task>
+   	</depends>  
+  
+  	  	<arguments>
+		<arg name="TheFragDirectory">${WorkingDirectory}/</arg>
+    		</arguments> 
+
+            
+	</task>
+
+
+	<task name="OrganiseCoverageStats" type="OrganiseCoverageStats">
+     	<depends>
+		<task>MultiWigProcess</task>
+   	</depends>  
+  
+	<outputs>
+       	 <output name="CovPlot">${WorkingDirectory}/Coverage/TempPlot.png</output>
+    	</outputs>
+  	  	<arguments>
+		<arg name="TheCovDirectory">${WorkingDirectory}/Coverage/</arg>
+    		</arguments> 
+
+            
+	</task>
+
+	<task name="MacsPickUp" type="MacsPickUp">
+     	<depends>
+		<task>MacsPeakCaller</task>
+   	</depends>  
+  
+  	  	<arguments>
+		<arg name="TheDirectory">${WorkingDirectory}</arg>
+    		</arguments> 
+            
+	</task>
+
+
+
+
+
+
+	<task name="UpDateBamStats" type="UpDateBamStats">
+     	<depends>
+		<task>MultiBamProcess</task>
+   	</depends>  
+  
+  	  	<arguments>
+		<arg name="TheDirectory">${WorkingDirectory}</arg>
+    		</arguments> 
+            
+	</task>
+
+
+	<task name="MacsFragmentLength" type="MacsFragmentLength">
+     	<depends>
+		<task>MacsPeakCaller</task>
+   	</depends>  
+  
+  	  	<arguments>
+		<arg name="TheDirectory">${WorkingDirectory}</arg>
+    		</arguments> 
+            
+	</task>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+	<specialisationSet name="MacsPeakCaller" type="MacsPeakCaller" variable="trio">
+        <depends>
+	     <task>MultiBamProcess</task>
+   	</depends>
+
+	<subtasks> 
+       
+	 <task name="MacsProcess" type="MacsProcess">
+        <resources>
+            <memory>4G</memory>
+        </resources>
+            <inputs>
+                <input name="TestBam">${BamDirectory}/${Test}.bam</input>
+                <input name="ControlBam">${BamDirectory}/${Control}.bam</input>
+            </inputs>
+
+            <outputs>
+                <output name="Output1" deleteOnFailure="false">${WorkingDirectory}/Peaks/Macs_Peaks/${Test}_peaks.xls</output>
+                <output name="Output2" deleteOnFailure="false">${WorkingDirectory}/Peaks/Macs_Peaks/${Test}_peaks.bed</output>
+                <output name="Output3" deleteOnFailure="false">${WorkingDirectory}/Peaks/Macs_Peaks/${Test}_model.r</output>
+                <output name="Output4" deleteOnFailure="false">${WorkingDirectory}/Peaks/Macs_Peaks/${Test}_negative_peaks.xls</output>
+            </outputs>
+    	<arguments>
+    	    <arg name="OutputName">${WorkingDirectory}/Peaks/Macs_Peaks/${Test}</arg>
+	    <arg name="TheDirectory">${WorkingDirectory}</arg>
+		<arg name="GenomeForMacs">${GM}</arg>
+		<arg name="Mfold">${MF}</arg>
+		<arg name="shiftSize">${SS}</arg>
+
+
+    	</arguments> 
+            
+	</task>
+
+
+
+
+
+	<task name="TPICsPeakCaller" type="TPICsPeakCaller">
+        <resources>
+            <memory>4G</memory>
+        </resources>
+
+            <outputs>
+                <output name="OutputTPICs" deleteOnFailure="false">${WorkingDirectory}/Peaks/TPICS_Peaks/${Test}/${Test}_TPICS_Peaks.bed</output>
+            </outputs>
+    	<arguments>
+    	    <arg name="TestName">${WorkingDirectory}/Peaks/TPICS_Peaks/${Test}/</arg>
+	    <arg name="SampleName">${Test}</arg>
+	    <arg name="TheDirectory">${WorkingDirectory}</arg>
+		<arg name="GenomeForTPICS">${GT}</arg>
+		<arg name="shiftSize">${SS}</arg>
+		<arg name="Width">1000</arg>
+              <arg name="TestBed">${Test}.bed</arg>
+              <arg name="ControlBed">${Control}.bed</arg>
+              <arg name="TheWideScaleWidth">10000</arg>
+    	</arguments> 
+            
+	</task>
+
+
+	<task name="SicerProcess" type="SicerProcess">
+        <resources>
+            <memory>8G</memory>
+        </resources>
+
+            <outputs>
+                <output name="OutputSicer" deleteOnFailure="false">${WorkingDirectory}/Peaks/Sicer_Peaks/${Test}/${Test}-W200-G600-islands-summary-FDR.01</output>
+            </outputs>
+    	<arguments>
+    	    <arg name="TestName">${WorkingDirectory}/Peaks/Sicer_Peaks/${Test}</arg>
+	    <arg name="TheDirectory">${WorkingDirectory}</arg>
+		<arg name="GenomeForSicer">${GS}</arg>
+		<arg name="shiftSize">${SS}</arg>
+              <arg name="TestBed">${Test}.bed</arg>
+              <arg name="ControlBed">${Control}.bed</arg>
+    	</arguments> 
+            
+	</task>
+
+
+
+
+	 <task name="MacsFragmentImage" type="MacsFragmentImage">
+       <depends>
+	     <task>MacsProcess</task>
+   	</depends>
+        <resources>
+            <memory>2G</memory>
+        </resources>
+            <inputs>
+	         <input name="ModelScript" origin="dependency" dependency="MacsProcess" ref="Output3"/>
+            </inputs>
+
+            <outputs>
+                <output name="ModelImage" deleteOnFailure="false">${WorkingDirectory}/Peaks/Macs_Peaks/${Test}_model.pdf</output>
+            </outputs>
+            
+	</task>
+
+	     </subtasks>
+      </specialisationSet>
+
+
+    </tasks>
+</pipe:pipeline>

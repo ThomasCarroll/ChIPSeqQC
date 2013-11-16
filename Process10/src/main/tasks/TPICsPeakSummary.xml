@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="ISO-8859-1" ?>
+<task:task xmlns:task="http://cancerresearchuk.org/workflow/task"
+           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+           xsi:schemaLocation="http://cancerresearchuk.org/workflow/task http://uk-cri-lbio01/schema/workflow/task-1.4.xsd">
+
+    <name>TPICsPeakSummary</name>
+    <description>TPICs peak call processing for ChIPseqPipeline.</description>
+
+    <program type="commandLine">
+        <executable>
+	awk -v OFS="\t" '$1=$1' ${TestName}/TPIC.final.bed > ${TestName}/${SampleName}_final_TPICS.bed
+	awk -v OFS="\t" '$1=$1' ${TestName}/TPIC.bed > ${TestName}/${SampleName}_TPIC.bed
+	${bedtools}/intersectBed -wb -a ${TestName}/${SampleName}_final_TPICS.bed -b ${TestName}/${SampleName}_TPIC.bed | awk '{print $1 "\t" $2 "\t" $3 "\t" $7/$8 "\t" $9}' | ${bedtools}/groupBy -c 4,5 -o mean,mean > ${TestName}/${SampleName}_Temp_TPICS_Peaks.bed
+	sort -k1,1V -k2,2g ${TestName}/${SampleName}_Temp_TPICS_Peaks.bed > ${TestName}/${SampleName}_Temp2_TPICS_Peaks.bed
+	python ${pipelineBase}/PythonScripts/AddPeakNames.py ${TestName}/${SampleName}_Temp2_TPICS_Peaks.bed ${TestName}/${SampleName}_TPICS_Peaks.bed
+	</executable>
+    </program>
+
+    <inputs>
+        <input name="InputTPICs" required="true" description="The Peaks file." />
+    </inputs>
+
+
+    <outputs>
+        <output name="OutputTPICs2" required="true" safeNaming="false" description="Wig processes by pipeline" />
+    </outputs>
+
+    <arguments>
+        <arg name="TestName" required="true" description="Name for Macs output"/>
+	<arg name="GenomeForTPICS" required="true" description="Genome for Macs output"/>
+	<arg name="Width" required="true" description="Genome for Macs output"/>
+	<arg name="SampleName" required="true" description="Sample Name output"/>
+	<arg name="shiftSize" required="true" description="Genome for Macs output"/>
+	<arg name="TheDirectory" required="true" description="Working Directory"/>
+       <arg name="TestBed" required="true" description="The Bam file." />
+       <arg name="ControlBed" required="true" description="genome." />
+       <arg name="TheWideScaleWidth" required="true" description="genome." />	
+       <arg name="bedtools" required="true" description="genome." />
+	<arg name="pipelineBase" required="true" description="genome." />
+    </arguments>
+
+</task:task>

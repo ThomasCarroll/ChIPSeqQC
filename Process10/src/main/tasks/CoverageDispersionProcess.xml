@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="ISO-8859-1" ?>
+<task:task xmlns:task="http://cancerresearchuk.org/workflow/task"
+           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+           xsi:schemaLocation="http://cancerresearchuk.org/workflow/task http://uk-cri-lbio01/schema/workflow/task-1.4.xsd">
+
+    <name>CoverageDispersionProcess</name>
+    <description>Wig histogram for ChIPseqPipeline.</description>
+
+    <program type="commandLine">
+        <executable>
+	export R_LIBS=${rlibs}
+	${rexec} ${pipelineBase}/RScripts/R_CoverageDispersion.r ${bam_processed} ${TheDirectory}
+	</executable>
+    </program>
+
+    <inputs>
+        <input name="bam_processed" required="true" description="The Bam file." />
+    </inputs>
+
+    <outputs>
+        <output name="CovDispersion" required="true" safeNaming="false" description="Histogram processes by pipeline" />
+    </outputs>
+
+
+    <arguments>
+	<arg name="TheDirectory" required="true" description="Working Directory"/>
+        <arg name="genomeName" required="true" description="genome." />
+	 <arg name="rexec" required="true" description="r executable"/>
+        <arg name="pipelineBase" required="true" description="Base directory of pipeline." />
+	<arg name="rlibs" required="true" description="pipeline base"/>
+    </arguments>
+
+</task:task>

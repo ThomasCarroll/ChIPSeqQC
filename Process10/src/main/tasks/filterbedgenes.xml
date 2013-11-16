@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="ISO-8859-1" ?>
+<task:task xmlns:task="http://cancerresearchuk.org/workflow/task"
+           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+           xsi:schemaLocation="http://cancerresearchuk.org/workflow/task http://uk-cri-lbio01/schema/workflow/task-1.4.xsd">
+
+    <name>filterbedgenes</name>
+    <description>gtftobed filtering processing for ChIPseqPipeline.</description>
+
+    <program type="commandLine">
+        <executable>
+	${rexec} ${pipelineBase}/RScripts/gtfAndmainToBed.r ${unfilteredbed} ${transcriptinfo} ${filteredbed}
+	</executable>
+    </program>
+
+    <inputs>
+        <input name="unfilteredbed" required="true" description="The unfiltereded from GTF file." />
+        <input name="transcriptinfo" required="true" description="The transcript info file." />        
+    </inputs>
+
+    <outputs>
+        <output name="filteredbed" required="true" safeNaming="false" description="Bam processes by pipeline" />
+    </outputs>
+
+    <arguments>
+	<arg name="rexec" required="true" description="r executable"/>
+	<arg name="pipelineBase" required="true" description="pipeline base"/>
+    </arguments>
+
+</task:task>

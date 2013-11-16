@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="ISO-8859-1" ?>
+<task:task xmlns:task="http://cancerresearchuk.org/workflow/task"
+           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+           xsi:schemaLocation="http://cancerresearchuk.org/workflow/task http://uk-cri-lbio01/schema/workflow/task-1.4.xsd">
+
+    <name>OnCoverage_GrepAllFromHistProcess</name>
+    <description>Off-target coverage Profiles for ChIPseqPipeline.</description>
+
+    <program type="commandLine">
+        <executable>
+	grep all ${offorontargethist} > ${justall_targethist}
+	</executable>
+    </program>
+
+    <inputs>
+        <input name="offorontargethist" required="true" description="The Bam file." />
+    </inputs>
+
+    <outputs>
+        <output name="justall_targethist" required="true" safeNaming="false" description="Bam processes by pipeline" />
+    </outputs>
+
+</task:task>

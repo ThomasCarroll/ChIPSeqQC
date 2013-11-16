@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="ISO-8859-1" ?>
+<task:task xmlns:task="http://cancerresearchuk.org/workflow/task"
+           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+           xsi:schemaLocation="http://cancerresearchuk.org/workflow/task http://uk-cri-lbio01/schema/workflow/task-1.4.xsd">
+
+
+    <name>CrossCorrelationProcess</name>
+    <description>Wig histogram for ChIPseqPipeline.</description>
+
+    <program type="commandLine">
+        <executable>
+		/home/mib-cri/bin/R215 -f /lustre/mib-cri/carrol09/Work/MyPipe/Process10/RScripts/run_spp.R --args -c=${bam_processed} -out=${CrossCorResults}
+	</executable>
+    </program>
+
+    <inputs>
+        <input name="bam_processed" required="true" description="The Bam file." />
+    </inputs>
+
+    <outputs>
+        <output name="CrossCorResults" required="true" safeNaming="false" description="Histogram processes by pipeline" />
+    </outputs>
+
+
+    <arguments>
+	<arg name="TheDirectory" required="true" description="Working Directory"/>
+        <arg name="genomeName" required="true" description="genome." />
+    </arguments>
+
+</task:task>

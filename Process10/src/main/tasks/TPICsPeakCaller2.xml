@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="ISO-8859-1" ?>
+<task:task xmlns:task="http://cancerresearchuk.org/workflow/task"
+           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+           xsi:schemaLocation="http://cancerresearchuk.org/workflow/task http://uk-cri-lbio01/schema/workflow/task-1.4.xsd">
+
+
+    <name>TPICsPeakCaller2</name>
+    <description>TPICs peak call processing for ChIPseqPipeline.</description>
+
+    <program type="commandLine">
+        <executable>
+	mkdir -p ${TestName}
+	cd ${TestName}
+	export R_LIBS=${rlibs}
+	${perl} ${tpicscoverage} ${shiftSize} ${TheDirectory}/bamFiles/${TestBed} ${GenomeForTPICS} ${TestName} ${genomeChrLengths}
+	${perl} ${tpicszeta} ${shiftSize} ${Width} ${TheDirectory}/bamFiles/${TestBed} ${TheDirectory}/bamFiles/${ControlBed} ${TestName} ${TheWideScaleWidth} ${genomeChrLengths}
+	${rexec} ${tpics} ${shiftSize} ${genomeChrLengths}
+	
+	</executable>
+    </program>
+
+
+    <outputs>
+        <output name="OutputTPICs" required="true" safeNaming="false" description="Wig processes by pipeline" />
+    </outputs>
+
+    <arguments>
+        <arg name="TestName" required="true" description="Name for Macs output"/>
+	<arg name="GenomeForTPICS" required="true" description="Genome for Macs output"/>
+	<arg name="Width" required="true" description="Genome for Macs output"/>
+	<arg name="SampleName" required="true" description="Sample Name output"/>
+	<arg name="shiftSize" required="true" description="Genome for Macs output"/>
+	<arg name="TheDirectory" required="true" description="Working Directory"/>
+       <arg name="TestBed" required="true" description="The Bam file." />
+       <arg name="ControlBed" required="true" description="genome." />
+       <arg name="TheWideScaleWidth" required="true" description="genome." />	
+       <arg name="perl" required="true" description="The Bam file." />
+       <arg name="tpics" required="true" description="genome." />
+       <arg name="tpicszeta" required="true" description="genome." />
+       <arg name="tpicscoverage" required="true" description="genome." />
+       <arg name="rexec" required="true" description="genome." />
+       <arg name="rlibs" required="true" description="genome." />
+       <arg name="genomeChrLengths" required="true" description="genome." />       
+    </arguments>
+
+</task:task>

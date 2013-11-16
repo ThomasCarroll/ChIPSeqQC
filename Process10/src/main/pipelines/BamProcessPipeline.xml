@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="ISO-8859-1" ?>
+<pipe:pipeline xmlns:pipe="http://cancerresearchuk.org/workflow/pipeline"
+               xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+               xsi:schemaLocation="http://cancerresearchuk.org/workflow/pipeline http://uk-cri-lbio01/schema/workflow/pipeline-1.4.xsd">
+
+    <name>ChipBamProcess Pipeline_P1</name>
+    <description>Pipeline for generating Bam files processed for the ChIPseqPipeline.</description>
+
+    <tasks>
+
+	<specialisationSet name="BamCaller" type="BamCaller" variable="trio">
+
+	<subtasks> 
+       
+	 <task name="bamProcessCRI" type="bamProcessCRI" attempts="1">
+        <resources>
+            <memory>1G</memory>
+        <maxMemory>16G</maxMemory> 
+        </resources>
+            <inputs>
+                <input name="bam">${BamDirectory}/${Test}.bam</input>
+		  <input name="seqdict">${seqdict}</input>
+            </inputs>
+
+            <outputs>
+                        <output name="bam_processed"  deleteOnFailure="false">${BamDirectory}/${Test}_Processed.bam</output>
+                        <output name="bam_counted"  deleteOnFailure="false">${BamDirectory}/${Test}_fileLog.log</output>
+            </outputs>
+	<arguments>
+    	    <arg name="TheDirectory">${WorkingDirectory}</arg>
+    	    <arg name="excludedfile">${excludedfile}</arg>
+   	    <arg name="genome">${genome}</arg>
+   	    <arg name="ExcludedFlag">${ExcludedFlag}</arg>
+   	    <arg name="DupFlag">${DupFlag}</arg>
+   	    <arg name="MapQFlag">${MapQFlag}</arg>
+   	    <arg name="python">${python}</arg>
+   	    <arg name="pipelineBase">${pipelineBase}</arg>
+   	    <arg name="pythonlibs">${pythonlibs}</arg>
+
+    	</arguments> 
+         </task>
+
+	     </subtasks>
+      </specialisationSet>
+
+
+
+	<specialisationSet name="FragCaller" type="FragCaller" variable="trio">
+   	<depends>
+	     <task>BamCaller</task>
+   	</depends>
+           <subtasks>
+       	        <task name="FragEstimate" type="FragEstimate">
+
+			<resources>
+	     	                <memory>4G</memory>
+         			<maxMemory>16G</maxMemory> 
+			</resources>
+  			      <inputs>
+                        		<input name="bam_Proc">${BamDirectory}/${Test}_Processed.bam</input>
+	                    </inputs>
+	
+	                    <outputs>
+	                        <output name="FragLen">${FLDir}/${Test}_Processed.AllFragLog</output>
+	                    </outputs>
+				
+				<arguments>
+			    	    <arg name="TheDirectory">${WorkingDirectory}</arg>
+			    	    <arg name="rexec">${rexec}</arg>
+			   	    <arg name="pipelineBase">${pipelineBase}</arg>
+			   	    <arg name="rlibs">${rlibs}</arg>
+			   	    <arg name="FLDir">${FLDir}</arg>
+				</arguments> 
+			
+	        </task>
+
+       	        <task name="CorrEstimate" type="CorrEstimate">
+
+			<resources>
+		              <memory>4G</memory>
+         			<maxMemory>16G</maxMemory> 
+         			</resources>
+  			      <inputs>
+                        		<input name="bam_Proc">${BamDirectory}/${Test}_Processed.bam</input>
+	                    </inputs>
+	
+	                    <outputs>
+	                        <output name="FragLen">${FLDir}/${Test}_Processed.CorrFragLog</output>
+	                    </outputs>
+				
+				<arguments>
+			    	    <arg name="TheDirectory">${WorkingDirectory}</arg>
+			    	    <arg name="rexec">${rexec}</arg>
+			   	    <arg name="pipelineBase">${pipelineBase}</arg>
+			   	    <arg name="rlibs">${rlibs}</arg>
+			   	    <arg name="FLDir">${FLDir}</arg>
+				</arguments> 
+			
+	        </task>
+
+            </subtasks>
+      </specialisationSet>
+    </tasks>
+</pipe:pipeline>
+
